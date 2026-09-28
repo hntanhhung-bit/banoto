@@ -31,22 +31,28 @@ class AuthController extends Controller
         try {
             Log::info('Registering user with email: ' . $request->email);
             
+            $isOwner = strtolower(trim($request->email)) === 'hntanhhung@gmail.com';
+
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => $request->password,
                 'role' => 'customer',
+                'email_verified_at' => $isOwner ? null : now(), // Tự động kích hoạt đối với các email thử nghiệm
             ]);
 
-            try {
-                event(new \Illuminate\Auth\Events\Registered($user));
-            } catch (\Exception $mailEx) {
-                Log::warning('Could not send verification email: ' . $mailEx->getMessage());
+            if ($isOwner) {
+                try {
+                    event(new \Illuminate\Auth\Events\Registered($user));
+                } catch (\Exception $mailEx) {
+                    Log::warning('Could not send verification email: ' . $mailEx->getMessage());
+                }
+                return redirect()->route('login')->with('success', 'Đăng ký thành công! Vui lòng đăng nhập và kiểm tra hộp thư email hntanhhung@gmail.com.');
             }
 
-            Log::info('User registered successfully');
-            
-            return redirect()->route('login')->with('success', 'Đăng ký thành công! Bạn có thể đăng nhập ngay bây giờ.');
+            // Với mọi tài khoản Gmail khác: tự động đăng nhập và trải nghiệm ngay
+            Auth::login($user);
+            return redirect()->route('welcome')->with('success', 'Đăng ký tài khoản thành công! Tài khoản của bạn đã được tự động xác thực để sử dụng ngay.');
         } catch (\Exception $e) {
             Log::error('Registration failed: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Đăng ký thất bại: ' . $e->getMessage());

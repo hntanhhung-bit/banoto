@@ -20,6 +20,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        'email_verified_at',
         'password',
         'role', // Đã bổ sung trường role vào đây
         'partner_status',

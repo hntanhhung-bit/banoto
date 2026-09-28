@@ -58,12 +58,21 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
 
 // 3. Route gửi lại link xác minh email
 Route::post('/email/verification-notification', function (Request $request) {
+    $user = $request->user();
     try {
-        $request->user()->sendEmailVerificationNotification();
-        return back()->with('success', 'Đã gửi lại link xác minh vào email của bạn! Vui lòng kiểm tra hộp thư đến (hoặc thư mục Spam).');
+        $user->sendEmailVerificationNotification();
+        return back()->with('success', 'Đã gửi lại link xác minh vào email ' . $user->email . '! Vui lòng kiểm tra hộp thư đến (hoặc thư mục Spam).');
     } catch (\Throwable $e) {
-        \Illuminate\Support\Facades\Log::error('Verification email error: ' . $e->getMessage());
-        return back()->with('error', 'Không thể kết nối đến máy chủ gửi email (Render Free chặn cổng SMTP). Chi tiết: ' . $e->getMessage());
+        \Illuminate\Support\Facades\Log::warning('Verification email error: ' . $e->getMessage());
+        
+        // Nếu dịch vụ email giới hạn gửi (chỉ cho phép gửi về hntanhhung@gmail.com khi chưa có tên miền riêng)
+        // Hệ thống sẽ tự động kích hoạt tài khoản luôn cho người dùng để không bị chặn
+        if (!$user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            event(new \Illuminate\Auth\Events\Verified($user));
+        }
+
+        return redirect()->route('welcome')->with('success', 'Tài khoản (' . $user->email . ') đã được hệ thống tự động kích hoạt thành công! Bạn có thể sử dụng mọi tính năng.');
     }
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
