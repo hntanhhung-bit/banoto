@@ -66,6 +66,12 @@ return [
             'transport' => 'resend',
         ],
 
+        'mailtrap' => [
+            'transport' => 'mailtrap',
+            'api_token' => env('MAILTRAP_API_TOKEN'),
+            'inbox_id' => env('MAILTRAP_INBOX_ID'),
+        ],
+
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),

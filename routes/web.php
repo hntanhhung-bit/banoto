@@ -61,7 +61,7 @@ Route::post('/email/verification-notification', function (Request $request) {
     $user = $request->user();
     try {
         $user->sendEmailVerificationNotification();
-        return back()->with('success', 'Đã gửi lại link xác minh vào email ' . $user->email . '! Vui lòng kiểm tra hộp thư đến (hoặc thư mục Spam).');
+        return back()->with('success', 'Đã gửi link xác minh vào email ' . $user->email . '! Vui lòng kiểm tra hòm thư Mailtrap (My Sandbox) của bạn.');
     } catch (\Throwable $e) {
         \Illuminate\Support\Facades\Log::warning('Verification email error: ' . $e->getMessage());
         
