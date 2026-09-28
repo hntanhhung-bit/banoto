@@ -1,0 +1,79 @@
+[
+    {
+        "name": "TC_01_Homepage",
+        "status": "PASS",
+        "note": "Trang chu render thanh cong 200 OK, co du lieu xe",
+        "data": null
+    },
+    {
+        "name": "TC_02_Product_Detail",
+        "status": "PASS",
+        "note": "Xem chi tiet xe ID 11 thanh cong (200 OK)",
+        "data": null
+    },
+    {
+        "name": "TC_03_Register_Validation_Empty",
+        "status": "PASS",
+        "note": "Chuyen huong 302 voi session validation errors",
+        "data": null
+    },
+    {
+        "name": "TC_04_Register_Success",
+        "status": "PASS",
+        "note": "Tao user khachhang_1789548203@example.com thanh cong. email_verified_at = unverified",
+        "data": null
+    },
+    {
+        "name": "TC_05_Email_Verified_Middleware",
+        "status": "PASS",
+        "note": "Middleware verified da chan dung va redirect ve \/email\/verify",
+        "data": null
+    },
+    {
+        "name": "TC_06_Admin_Login",
+        "status": "FAIL",
+        "note": "Dang nhap Admin that bai hoac role sai. Status: 302",
+        "data": null
+    },
+    {
+        "name": "TC_07_Admin_Route_Protection",
+        "status": "PASS",
+        "note": "Khach vang lai bi chan khoi \/admin\/dashboard (Status 302)",
+        "data": null
+    },
+    {
+        "name": "TC_08_GHN_Locations_API",
+        "status": "PASS",
+        "note": "API \/locations\/provinces tra ve danh sach 3 tinh thanh",
+        "data": null
+    },
+    {
+        "name": "TC_09_Rental_Date_Validation",
+        "status": "PASS",
+        "note": "He thong da chan don thue xe co khoang ngay khong hop le",
+        "data": null
+    },
+    {
+        "name": "TC_10_Appointment_Booking",
+        "status": "FAIL \/ ERROR",
+        "note": "SQLSTATE[42S22]: Column not found: 1054 Unknown column 'phone' in 'where clause' (Connection: mysql, Host: localhost, Port: 3307, Database: ecommerce2024, SQL: select * from `appointments` where `phone` = 0987654321 limit 1) at C:\\xampp\\htdocs\\lar_vidu1\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php:838"
+    },
+    {
+        "name": "TC_11_Sepay_Webhook_Security",
+        "status": "FAIL",
+        "note": "LO HONG BAO MAT: Webhook SePay chap nhan request khong hop le (Status tra ve: 200)",
+        "data": null
+    },
+    {
+        "name": "TC_12_MoMo_IPN_Signature_Verification",
+        "status": "PASS",
+        "note": "MoMo IPN tu choi chu ky gia mao signature (Status: 400)",
+        "data": null
+    },
+    {
+        "name": "TC_13_Admin_Toggle_Role",
+        "status": "PASS",
+        "note": "Chuyen quyen thanh cong tu 'customer' sang 'admin'",
+        "data": null
+    }
+]
