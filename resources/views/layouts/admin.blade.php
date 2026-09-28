@@ -304,6 +304,11 @@
                             <i class="fa fa-line-chart text-success"></i> Thống kê Doanh thu
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link admin-nav-link {{ request()->routeIs('admin.gmail.*') ? 'active' : '' }}" href="{{ route('admin.gmail.index') }}">
+                            <i class="fa fa-envelope text-danger"></i> Cấu hình Gmail API
+                        </a>
+                    </li>
                 </ul>
                 
                 <!-- Menu thông tin tài khoản -->

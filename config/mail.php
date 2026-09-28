@@ -72,6 +72,13 @@ return [
             'inbox_id' => env('MAILTRAP_INBOX_ID'),
         ],
 
+        'gmail' => [
+            'transport' => 'gmail',
+            'client_id' => env('GMAIL_CLIENT_ID'),
+            'client_secret' => env('GMAIL_CLIENT_SECRET'),
+            'refresh_token' => env('GMAIL_REFRESH_TOKEN'),
+        ],
+
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),

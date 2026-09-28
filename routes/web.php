@@ -250,6 +250,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/messages/{userId}', [\App\Http\Controllers\Admin\ChatController::class, 'getMessages'])->name('messages');
         Route::post('/send', [\App\Http\Controllers\Admin\ChatController::class, 'send'])->name('send');
     });
+
+    // ================= CẤU HÌNH & KẾT NỐI GMAIL API (HTTPS 443) =================
+    Route::get('/admin/gmail', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'index'])->name('admin.gmail.index');
+    Route::get('/admin/gmail/connect', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'connect'])->name('admin.gmail.connect');
+    Route::get('/admin/gmail/callback', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'callback'])->name('admin.gmail.callback');
+    Route::post('/admin/gmail/send-test', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'sendTest'])->name('admin.gmail.sendTest');
+    Route::post('/admin/gmail/disconnect', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'disconnect'])->name('admin.gmail.disconnect');
 });
 
 // ================= ROUTE DÀNH CHO ĐỐI TÁC SHOWROOM / NHÀ XE =================
