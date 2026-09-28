@@ -24,13 +24,43 @@ Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('login', [AuthController::class, 'login']);
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
-// ================= ROUTE XÁC MINH EMAIL =================
-// 1. Route hiển thị thông báo yêu cầu người dùng vào check mail
-Route::get('/email/verify', function () {
-    return view('auth.verify-email'); 
+// ================= ROUTE XÁC MINH EMAIL & MÃ OTP =================
+// 1. Route hiển thị giao diện nhập mã OTP xác thực
+Route::get('/email/verify', function (Request $request) {
+    $user = $request->user();
+    if ($user && $user->hasVerifiedEmail()) {
+        return redirect()->route('welcome')->with('info', 'Tài khoản của bạn đã được xác thực trước đó.');
+    }
+    $otp = $user ? $user->getActiveOtp() : null;
+    return view('auth.verify-email', compact('user', 'otp')); 
 })->middleware('auth')->name('verification.notice');
 
-// 2. Route xử lý khi người dùng click vào link xác minh trong email
+// 2. Route xử lý xác thực bằng mã OTP 6 số
+Route::post('/email/verify-otp', function (Request $request) {
+    $request->validate([
+        'otp' => 'required|string|size:6',
+    ], [
+        'otp.required' => 'Vui lòng nhập mã OTP 6 số.',
+        'otp.size' => 'Mã OTP phải có đúng 6 chữ số.',
+    ]);
+
+    $user = $request->user();
+    if ($user->verifyOtp($request->otp)) {
+        event(new Verified($user));
+        return redirect()->route('welcome')->with('success', 'Xác thực tài khoản thành công! Bạn có thể sử dụng đầy đủ các tính năng.');
+    }
+
+    return back()->with('error', 'Mã OTP không chính xác hoặc đã hết hạn. Vui lòng kiểm tra lại!');
+})->middleware(['auth'])->name('verification.otp');
+
+// 3. Route cấp lại mã OTP mới
+Route::post('/email/resend-otp', function (Request $request) {
+    $user = $request->user();
+    $otp = $user->generateVerificationOtp();
+    return back()->with('success', 'Đã tạo mã OTP mới thành công! Mã xác thực của bạn là: ' . $otp);
+})->middleware(['auth', 'throttle:10,1'])->name('verification.resend_otp');
+
+// 4. Route xử lý khi người dùng click vào link xác minh trong email (nếu có)
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
 
@@ -56,27 +86,19 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     return redirect()->route('welcome')->with('success', 'Xác minh email thành công! Bạn có thể thêm xe vào giỏ hàng và sử dụng đầy đủ các tính năng.');
 })->middleware(['signed'])->name('verification.verify');
 
-// 3. Route gửi lại link xác minh email
+// 5. Route gửi lại link xác minh email
 Route::post('/email/verification-notification', function (Request $request) {
     $user = $request->user();
     try {
         $user->sendEmailVerificationNotification();
-        return back()->with('success', 'Đã gửi link xác minh vào email ' . $user->email . '! Vui lòng kiểm tra hòm thư Mailtrap (My Sandbox) của bạn.');
+        return back()->with('success', 'Đã gửi link xác minh vào email ' . $user->email . '!');
     } catch (\Throwable $e) {
         \Illuminate\Support\Facades\Log::warning('Verification email error: ' . $e->getMessage());
-        
-        // Nếu dịch vụ email giới hạn gửi (chỉ cho phép gửi về hntanhhung@gmail.com khi chưa có tên miền riêng)
-        // Hệ thống sẽ tự động kích hoạt tài khoản luôn cho người dùng để không bị chặn
-        if (!$user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
-            event(new \Illuminate\Auth\Events\Verified($user));
-        }
-
-        return redirect()->route('welcome')->with('success', 'Tài khoản (' . $user->email . ') đã được hệ thống tự động kích hoạt thành công! Bạn có thể sử dụng mọi tính năng.');
+        return back()->with('info', 'Mã OTP hiện đang hiển thị trực tiếp trên màn hình, bạn có thể nhập để xác thực ngay.');
     }
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
-// 4. Route kích hoạt nhanh tài khoản (Dành cho môi trường Demo / Cloud chặn SMTP)
+// 6. Route kích hoạt nhanh tài khoản (Dành cho môi trường Demo)
 Route::post('/email/instant-verify', function (Request $request) {
     $user = $request->user();
     if (!$user->hasVerifiedEmail()) {

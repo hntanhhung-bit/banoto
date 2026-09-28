@@ -44,9 +44,23 @@ class AuthController extends Controller
                 Log::warning('Could not send verification email: ' . $mailEx->getMessage());
             }
 
-            Log::info('User registered successfully');
+            Log::info('User registered successfully: ' . $user->email);
             
-            return redirect()->route('login')->with('success', 'Đăng ký thành công! Vui lòng đăng nhập và kiểm tra hòm thư Mailtrap để xác thực email.');
+            // Tự động đăng nhập người dùng ngay sau khi đăng ký
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            // Sinh mã OTP xác thực 6 số
+            $user->generateVerificationOtp();
+
+            // Thử gửi email nền nếu có mailer, nếu lỗi thì không làm gián đoạn người dùng
+            try {
+                event(new \Illuminate\Auth\Events\Registered($user));
+            } catch (\Throwable $mailEx) {
+                Log::warning('Verification email dispatch failed: ' . $mailEx->getMessage());
+            }
+
+            return redirect()->route('verification.notice')->with('success', 'Đăng ký tài khoản thành công! Vui lòng nhập mã OTP 6 số bên dưới để kích hoạt tài khoản.');
         } catch (\Exception $e) {
             Log::error('Registration failed: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Đăng ký thất bại: ' . $e->getMessage());
@@ -92,6 +106,12 @@ class AuthController extends Controller
         // 4. Chuyển hướng chính xác theo vai trò (Role)
         if ($user->role === 'admin') {
             return redirect()->route('admin.dashboard')->with('success', 'Đăng nhập thành công với quyền Quản trị viên!');
+        }
+
+        // 5. Nếu tài khoản chưa xác thực email -> chuyển hướng vào trang nhập mã OTP
+        if (!$user->hasVerifiedEmail()) {
+            $user->getActiveOtp();
+            return redirect()->route('verification.notice')->with('warning', 'Tài khoản của bạn chưa được xác thực. Vui lòng nhập mã OTP bên dưới để kích hoạt.');
         }
 
         return redirect()->route('welcome')->with('success', 'Đăng nhập thành công! Chào mừng ' . $user->name . '.');

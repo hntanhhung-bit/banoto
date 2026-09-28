@@ -284,6 +284,17 @@
         </div>
     </nav>
 
+    @auth
+        @if(!Auth::user()->hasVerifiedEmail() && !request()->routeIs('verification.*'))
+            <div class="alert alert-warning text-center mb-0 py-2 font-weight-bold shadow-sm" style="border-radius: 0; font-size: 14px; background-color: #fff3cd; border-bottom: 1px solid #ffeeba;">
+                <i class="fa fa-exclamation-triangle text-danger mr-1"></i> Tài khoản của bạn chưa được kích hoạt xác thực! 
+                <a href="{{ route('verification.notice') }}" class="btn btn-sm btn-dark ml-2 px-3 py-1 font-weight-bold text-white shadow-sm" style="border-radius: 15px;">
+                    <i class="fa fa-shield"></i> Nhập mã OTP kích hoạt ngay
+                </a>
+            </div>
+        @endif
+    @endauth
+
     <!-- HIỂN THỊ THÔNG BÁO FLASH MESSAGE -->
     <div class="container mt-3">
         @if(session('success'))
