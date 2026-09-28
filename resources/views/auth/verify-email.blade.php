@@ -33,6 +33,13 @@
                             </button>
                         </form>
 
+                        <form method="POST" action="{{ route('verification.instant') }}" class="mr-2 mb-2">
+                            @csrf
+                            <button type="submit" class="btn btn-success font-weight-bold px-4 py-2" style="border-radius: 30px;" title="Kích hoạt trực tiếp nếu máy chủ đám mây chặn cổng SMTP">
+                                <i class="fa fa-check-circle"></i> Kích hoạt ngay (Demo)
+                            </button>
+                        </form>
+
                         <a href="{{ route('welcome') }}" class="btn btn-outline-secondary font-weight-bold px-4 py-2 mb-2" style="border-radius: 30px;">
                             <i class="fa fa-home"></i> Quay lại Trang chủ
                         </a>
