@@ -29,40 +29,33 @@
                         </div>
                     @endif
 
-                    <!-- Thông tin tài khoản -->
-                    <div class="text-center mb-4">
-                        <div class="text-muted" style="font-size: 14px;">Tài khoản đăng ký:</div>
-                        <div class="font-weight-bold text-dark" style="font-size: 17px;">
-                            <i class="fa fa-user-circle text-primary"></i> {{ Auth::user()->name }} ({{ Auth::user()->email }})
+                    <!-- Thông báo đã gửi mã OTP qua Gmail -->
+                    <div class="p-4 mb-4 text-center rounded border" style="background: linear-gradient(180deg, #f0f7ff, #ffffff); border-color: #cce5ff !important; border-radius: 14px; box-shadow: 0 2px 8px rgba(0, 95, 183, 0.06);">
+                        <div class="mb-3">
+                            <span class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle shadow-sm" style="width: 54px; height: 54px; font-size: 24px;">
+                                <i class="fa fa-envelope-o"></i>
+                            </span>
                         </div>
-                    </div>
-
-                    <!-- Khung hiển thị mã OTP trực tiếp (Dành cho môi trường Demo/Trực quan) -->
-                    @php
-                        $displayOtp = $otp ?? (Auth::user() ? Auth::user()->getActiveOtp() : '------');
-                    @endphp
-                    <div class="p-3 mb-4 text-center rounded border" style="background-color: #f0f7ff; border-color: #cce5ff !important; border-radius: 12px;">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="badge badge-primary px-2 py-1" style="font-size: 11px;">MÃ OTP BẢO MẬT</span>
-                            <span class="text-muted" style="font-size: 12px;"><i class="fa fa-clock-o"></i> Hiệu lực 15 phút</span>
+                        <h5 class="font-weight-bold text-dark mb-2" style="font-size: 17px;">
+                            Mã xác thực OTP đã được gửi!
+                        </h5>
+                        <p class="text-muted mb-2" style="font-size: 14px; line-height: 1.5;">
+                            Chúng tôi đã gửi mã bảo mật 6 chữ số đến địa chỉ email:
+                        </p>
+                        <div class="d-inline-block px-3 py-1 bg-white border border-primary text-primary font-weight-bold rounded-pill mb-3" style="font-size: 15px;">
+                            <i class="fa fa-envelope text-primary mr-1"></i> {{ Auth::user()->email }}
                         </div>
-                        <div id="otpDisplay" class="font-weight-bold text-primary my-2" style="font-size: 36px; letter-spacing: 10px; font-family: monospace;">
-                            {{ $displayOtp }}
-                        </div>
-                        <div class="text-muted small">
-                            Mã xác thực của bạn. Bấm nút dưới để điền nhanh hoặc tự gõ vào ô:
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold mt-2 px-3" style="border-radius: 20px;" onclick="fillOtp('{{ $displayOtp }}')">
-                            <i class="fa fa-magic"></i> Điền nhanh mã này
-                        </button>
+                        <p class="text-muted small mb-0" style="line-height: 1.5;">
+                            Vui lòng mở ứng dụng <strong>Gmail</strong> của bạn, kiểm tra hộp thư đến (Inbox) hoặc mục <strong>Thư rác (Spam)</strong> để lấy mã và nhập vào bên dưới.
+                        </p>
                     </div>
 
                     <!-- Form nhập mã OTP -->
                     <form method="POST" action="{{ route('verification.otp') }}">
                         @csrf
                         <div class="form-group text-center mb-4">
-                            <label for="otp" class="font-weight-bold text-secondary text-uppercase" style="font-size: 13px; letter-spacing: 0.5px;">
-                                Nhập 6 chữ số mã OTP vào đây:
+                            <label for="otpInput" class="font-weight-bold text-secondary text-uppercase" style="font-size: 13px; letter-spacing: 0.5px;">
+                                <i class="fa fa-lock text-primary mr-1"></i> Nhập 6 chữ số mã OTP vào đây:
                             </label>
                             <input type="text" 
                                    id="otpInput" 
@@ -74,37 +67,39 @@
                                    placeholder="______"
                                    required 
                                    autofocus
-                                   style="font-size: 32px; letter-spacing: 12px; height: 65px; border-radius: 12px; font-family: monospace; border: 2px solid #005fb7;">
+                                   autocomplete="one-time-code"
+                                   style="font-size: 34px; letter-spacing: 12px; height: 65px; border-radius: 12px; font-family: monospace; border: 2px solid #005fb7; background-color: #fafbfc;">
                             @error('otp')
                                 <div class="invalid-feedback font-weight-bold" style="font-size: 14px;">
                                     {{ $message }}
                                 </div>
                             @enderror
+                            <div class="text-muted small mt-2">
+                                <i class="fa fa-clock-o text-muted"></i> Mã OTP có hiệu lực trong vòng <strong>15 phút</strong>.
+                            </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-block btn-lg font-weight-bold py-3 shadow-sm mb-3" style="border-radius: 30px; font-size: 16px;">
-                            <i class="fa fa-check-circle"></i> Xác Nhận Kích Hoạt Tài Khoản
+                        <button type="submit" class="btn btn-primary btn-block btn-lg font-weight-bold py-3 shadow-sm mb-3" style="border-radius: 30px; font-size: 16px; letter-spacing: 0.5px;">
+                            <i class="fa fa-check-circle mr-1"></i> Xác Nhận Kích Hoạt Tài Khoản
                         </button>
                     </form>
 
                     <!-- Các nút hành động phụ -->
-                    <div class="row pt-2 text-center">
-                        <div class="col-6 mb-2">
-                            <form method="POST" action="{{ route('verification.resend_otp') }}">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-secondary btn-sm btn-block font-weight-bold py-2" style="border-radius: 20px;">
-                                    <i class="fa fa-refresh"></i> Đổi mã OTP mới
-                                </button>
-                            </form>
-                        </div>
-                        <div class="col-6 mb-2">
-                            <form method="POST" action="{{ route('verification.instant') }}">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-success btn-sm btn-block font-weight-bold py-2" style="border-radius: 20px;" title="Kích hoạt trực tiếp không cần nhập mã">
-                                    <i class="fa fa-bolt"></i> Kích hoạt ngay
-                                </button>
-                            </form>
-                        </div>
+                    <div class="text-center pt-2">
+                        <form method="POST" action="{{ route('verification.resend_otp') }}" class="mb-2">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-primary btn-block font-weight-bold py-2" style="border-radius: 20px;">
+                                <i class="fa fa-refresh mr-1"></i> Chưa nhận được mã? Gửi lại OTP qua Gmail
+                            </button>
+                        </form>
+                        
+                        <!-- Dự phòng kích hoạt nếu người dùng gặp sự cố kết nối email -->
+                        <form method="POST" action="{{ route('verification.instant') }}" class="mt-2">
+                            @csrf
+                            <button type="submit" class="btn btn-link btn-sm text-muted" style="font-size: 12.5px; text-decoration: underline;" title="Nhấn vào đây nếu không nhận được thư sau nhiều lần gửi lại">
+                                Gặp sự cố không nhận được email? Kích hoạt tài khoản trực tiếp tại đây
+                            </button>
+                        </form>
                     </div>
 
                     <hr class="my-3">
@@ -130,14 +125,6 @@
 </div>
 
 <script>
-function fillOtp(code) {
-    var input = document.getElementById('otpInput');
-    if (input && code && code !== '------') {
-        input.value = code;
-        input.focus();
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     var input = document.getElementById('otpInput');
     if (input) {

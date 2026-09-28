@@ -180,6 +180,9 @@ class GmailOAuthController extends Controller
         if (file_exists($path)) {
             @unlink($path);
         }
+        try {
+            Cache::forget('gmail_api_credentials');
+        } catch (\Throwable $e) {}
         return redirect()->route('admin.gmail.index')->with('success', 'Đã ngắt kết nối Gmail API thành công.');
     }
 }

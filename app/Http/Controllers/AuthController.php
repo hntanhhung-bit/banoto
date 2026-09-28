@@ -60,7 +60,7 @@ class AuthController extends Controller
                 Log::warning('Verification email dispatch failed: ' . $mailEx->getMessage());
             }
 
-            return redirect()->route('verification.notice')->with('success', 'Đăng ký tài khoản thành công! Vui lòng nhập mã OTP 6 số bên dưới để kích hoạt tài khoản.');
+            return redirect()->route('verification.notice')->with('success', 'Đăng ký tài khoản thành công! Mã xác thực OTP 6 số đã được gửi đến email ' . $user->email . '. Vui lòng kiểm tra hộp thư đến (Inbox) hoặc thư rác (Spam).');
         } catch (\Exception $e) {
             Log::error('Registration failed: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Đăng ký thất bại: ' . $e->getMessage());

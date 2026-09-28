@@ -31,8 +31,10 @@ Route::get('/email/verify', function (Request $request) {
     if ($user && $user->hasVerifiedEmail()) {
         return redirect()->route('welcome')->with('info', 'Tài khoản của bạn đã được xác thực trước đó.');
     }
-    $otp = $user ? $user->getActiveOtp() : null;
-    return view('auth.verify-email', compact('user', 'otp')); 
+    if ($user && !$user->getActiveOtp()) {
+        $user->generateVerificationOtp();
+    }
+    return view('auth.verify-email', compact('user')); 
 })->middleware('auth')->name('verification.notice');
 
 // 2. Route xử lý xác thực bằng mã OTP 6 số
@@ -56,8 +58,8 @@ Route::post('/email/verify-otp', function (Request $request) {
 // 3. Route cấp lại mã OTP mới
 Route::post('/email/resend-otp', function (Request $request) {
     $user = $request->user();
-    $otp = $user->generateVerificationOtp();
-    return back()->with('success', 'Đã tạo mã OTP mới thành công! Mã xác thực của bạn là: ' . $otp);
+    $user->generateVerificationOtp();
+    return back()->with('success', 'Mã OTP mới đã được gửi thành công đến email: ' . $user->email . '. Vui lòng kiểm tra hộp thư đến (Inbox) hoặc thư rác (Spam).');
 })->middleware(['auth', 'throttle:10,1'])->name('verification.resend_otp');
 
 // 4. Route xử lý khi người dùng click vào link xác minh trong email (nếu có)

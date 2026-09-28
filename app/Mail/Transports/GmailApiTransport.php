@@ -33,20 +33,50 @@ class GmailApiTransport extends AbstractTransport
 
     public static function getSavedCredentials(): array
     {
+        // 1. Ưu tiên đọc từ Cache (Lưu trong MySQL DB, tồn tại vĩnh viễn trên Render kể cả khi redeploy)
+        try {
+            $cached = Cache::get('gmail_api_credentials');
+            if (is_array($cached) && !empty($cached['refresh_token'])) {
+                return $cached;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Could not read gmail credentials from cache: ' . $e->getMessage());
+        }
+
+        // 2. Đọc từ file storage/app/gmail_credentials.json
         $path = storage_path('app/gmail_credentials.json');
         if (file_exists($path)) {
             $data = json_decode(file_get_contents($path), true);
-            if (is_array($data)) {
+            if (is_array($data) && !empty($data)) {
                 return $data;
             }
         }
+
+        // 3. Đọc từ biến môi trường .env nếu có
+        if (env('GMAIL_REFRESH_TOKEN')) {
+            return [
+                'client_id' => env('GMAIL_CLIENT_ID'),
+                'client_secret' => env('GMAIL_CLIENT_SECRET'),
+                'refresh_token' => env('GMAIL_REFRESH_TOKEN'),
+                'connected_email' => env('MAIL_FROM_ADDRESS', 'hntanhhung@gmail.com'),
+            ];
+        }
+
         return [];
     }
 
     public static function saveCredentials(array $data): void
     {
+        // 1. Lưu vào file
         $path = storage_path('app/gmail_credentials.json');
         @file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
+
+        // 2. Lưu vào DB Cache vĩnh viễn (để không bị mất khi Render redeploy)
+        try {
+            Cache::forever('gmail_api_credentials', $data);
+        } catch (\Throwable $e) {
+            Log::warning('Could not save gmail credentials to cache: ' . $e->getMessage());
+        }
     }
 
     protected function doSend(SentMessage $message): void
