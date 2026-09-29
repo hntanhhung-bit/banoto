@@ -38,27 +38,14 @@ class AuthController extends Controller
                 'role' => 'customer',
             ]);
 
-            try {
-                event(new \Illuminate\Auth\Events\Registered($user));
-            } catch (\Exception $mailEx) {
-                Log::warning('Could not send verification email: ' . $mailEx->getMessage());
-            }
-
             Log::info('User registered successfully: ' . $user->email);
             
             // Tự động đăng nhập người dùng ngay sau khi đăng ký
             Auth::login($user);
             $request->session()->regenerate();
 
-            // Sinh mã OTP xác thực 6 số
-            $user->generateVerificationOtp();
-
-            // Thử gửi email nền nếu có mailer, nếu lỗi thì không làm gián đoạn người dùng
-            try {
-                event(new \Illuminate\Auth\Events\Registered($user));
-            } catch (\Throwable $mailEx) {
-                Log::warning('Verification email dispatch failed: ' . $mailEx->getMessage());
-            }
+            // Sinh mã OTP xác thực 6 số và tự động gửi email qua Gmail API
+            $user->generateVerificationOtp(true);
 
             return redirect()->route('verification.notice')->with('success', 'Đăng ký tài khoản thành công! Mã xác thực OTP 6 số đã được gửi đến email ' . $user->email . '. Vui lòng kiểm tra hộp thư đến (Inbox) hoặc thư rác (Spam).');
         } catch (\Exception $e) {

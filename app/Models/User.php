@@ -105,47 +105,39 @@ class User extends Authenticatable implements MustVerifyEmail
         try {
             $savedGmail = \App\Mail\Transports\GmailApiTransport::getSavedCredentials();
             $hasGmailApi = !empty($savedGmail['refresh_token']) || !empty(env('GMAIL_REFRESH_TOKEN'));
+            $fromAddress = $savedGmail['connected_email'] ?? env('MAIL_FROM_ADDRESS', 'hntanhhung@gmail.com');
+            $fromName = env('MAIL_FROM_NAME', 'Auto Car Vietnam');
+
+            $data = [
+                'userName' => $user->name,
+                'otp' => $otp,
+                'email' => $user->email,
+            ];
+
+            $plainText = "Xin chào {$user->name},\n\nMã xác thực OTP để kích hoạt tài khoản của bạn tại Auto Car là: {$otp}\n\nMã có hiệu lực trong vòng 15 phút. Vui lòng nhập mã này vào trang xác thực để hoàn tất kích hoạt.\n\nTrân trọng,\nAuto Car Vietnam";
 
             if ($hasGmailApi) {
                 try {
-                    $fromAddress = $savedGmail['connected_email'] ?? env('MAIL_FROM_ADDRESS', 'hntanhhung@gmail.com');
-                    $fromName = env('MAIL_FROM_NAME', 'Auto Car Vietnam');
-
-                    \Illuminate\Support\Facades\Mail::mailer('gmail')->send([], [], function ($message) use ($user, $otp, $fromAddress, $fromName) {
-                        $html = view('emails.verify-otp', [
-                            'userName' => $user->name,
-                            'otp' => $otp,
-                            'email' => $user->email,
-                        ])->render();
-
+                    \Illuminate\Support\Facades\Mail::mailer('gmail')->send('emails.verify-otp', $data, function ($message) use ($user, $otp, $fromAddress, $fromName, $plainText) {
                         $message->to($user->email, $user->name)
                                 ->from($fromAddress, $fromName)
                                 ->subject("🔑 [Auto Car] Mã xác thực OTP của bạn: {$otp}")
-                                ->html($html);
+                                ->text($plainText);
                     });
 
                     \Illuminate\Support\Facades\Log::info("OTP email sent successfully via Gmail API to {$user->email}");
                     return true;
                 } catch (\Throwable $gmailEx) {
-                    \Illuminate\Support\Facades\Log::warning("Gmail API sending failed, falling back to default mailer: " . $gmailEx->getMessage());
+                    \Illuminate\Support\Facades\Log::error("Gmail API sending failed: " . $gmailEx->getMessage());
                 }
             }
 
             // Fallback gửi qua Mailer mặc định (Mailtrap / Resend / Brevo)
-            \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($user, $otp) {
-                $html = view('emails.verify-otp', [
-                    'userName' => $user->name,
-                    'otp' => $otp,
-                    'email' => $user->email,
-                ])->render();
-
-                $fromAddress = env('MAIL_FROM_ADDRESS', 'noreply@banoto.com');
-                $fromName = env('MAIL_FROM_NAME', 'Auto Car Vietnam');
-
+            \Illuminate\Support\Facades\Mail::send('emails.verify-otp', $data, function ($message) use ($user, $otp, $fromAddress, $fromName, $plainText) {
                 $message->to($user->email, $user->name)
                         ->from($fromAddress, $fromName)
                         ->subject("🔑 [Auto Car] Mã xác thực OTP của bạn: {$otp}")
-                        ->html($html);
+                        ->text($plainText);
             });
 
             \Illuminate\Support\Facades\Log::info("OTP email sent successfully via default mailer to {$user->email}");
@@ -154,6 +146,14 @@ class User extends Authenticatable implements MustVerifyEmail
             \Illuminate\Support\Facades\Log::error("Failed to send OTP email to {$user->email}: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Gửi lại thông báo xác thực email (Override phương thức mặc định của Laravel)
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->generateVerificationOtp(true);
     }
 
     /**

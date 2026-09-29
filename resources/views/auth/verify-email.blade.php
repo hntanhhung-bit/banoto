@@ -46,8 +46,11 @@
                             <i class="fa fa-envelope text-primary mr-1"></i> {{ Auth::user()->email }}
                         </div>
                         <p class="text-muted small mb-0" style="line-height: 1.5;">
-                            Vui lòng mở ứng dụng <strong>Gmail</strong> của bạn, kiểm tra hộp thư đến (Inbox) hoặc mục <strong>Thư rác (Spam)</strong> để lấy mã và nhập vào bên dưới.
+                            Vui lòng mở ứng dụng <strong>Gmail</strong> của bạn, kiểm tra hộp thư đến (Inbox) hoặc mục <strong>Thư rác (Spam / Junk)</strong> để lấy mã và nhập vào bên dưới.
                         </p>
+                        <div class="mt-2 py-1 px-2 rounded bg-light border text-secondary small" style="font-size: 12px;">
+                            <i class="fa fa-info-circle text-info mr-1"></i> Nếu bạn dùng email trường học (như <em>@hunre.edu.vn</em>), vui lòng kiểm tra thêm tab <strong>Khác (Other)</strong> hoặc hòm thư rác <strong>Junk Email</strong>.
+                        </div>
                     </div>
 
                     <!-- Form nhập mã OTP -->
