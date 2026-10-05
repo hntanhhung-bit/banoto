@@ -60,6 +60,39 @@
                             </p>
                         </div>
 
+                        @php
+                            $demoOtp = Auth::user()->getActiveOtp();
+                        @endphp
+
+                        <!-- HỘP MÃ OTP DÀNH CHO BÁO CÁO DEMO & RENDER CHẶN CỔNG MAIL -->
+                        <div class="card border-warning mb-4 shadow-sm" style="background: linear-gradient(135deg, #fffcf0 0%, #fff8e1 100%); border-radius: 14px; border: 2px dashed #f59e0b !important;">
+                            <div class="card-body p-3 text-center">
+                                <div class="d-flex align-items-center justify-content-center flex-wrap mb-2">
+                                    <span class="badge badge-warning text-dark px-2 py-1 mr-2 font-weight-bold" style="font-size: 11px; text-transform: uppercase; border-radius: 6px;">
+                                        <i class="fa fa-flask"></i> Chế độ Demo / Thuyết trình Đồ án
+                                    </span>
+                                    <small class="text-muted"><i class="fa fa-shield"></i> Do Cloud Render chặn cổng gửi mail</small>
+                                </div>
+                                <div class="small text-secondary mb-2" style="line-height: 1.4;">
+                                    Mã OTP bảo mật được hệ thống tạo sẵn cho tài khoản này là:
+                                </div>
+                                <div class="d-flex align-items-center justify-content-center flex-wrap my-2" style="gap: 10px;">
+                                    <div class="px-3 py-1 bg-white border border-warning rounded font-weight-bold shadow-sm" 
+                                         style="font-size: 26px; letter-spacing: 8px; font-family: monospace; color: #b45309 !important; border-width: 2px !important;">
+                                        {{ $demoOtp }}
+                                    </div>
+                                    <button type="button" class="btn btn-warning btn-sm font-weight-bold text-dark px-3 py-2 shadow-sm" 
+                                            onclick="fillOtp('{{ $demoOtp }}')" 
+                                            style="border-radius: 20px; font-size: 13px;">
+                                        <i class="fa fa-magic mr-1"></i> ⚡ Tự động điền mã này
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-1" style="font-size: 12px;">
+                                    Bấm nút <strong>"Tự động điền mã này"</strong> để đưa nhanh mã <strong>{{ $demoOtp }}</strong> vào ô bên dưới.
+                                </small>
+                            </div>
+                        </div>
+
                         <!-- Form nhập mã OTP -->
                         <form method="POST" action="{{ route('verification.otp') }}">
                             @csrf
@@ -136,6 +169,20 @@
     </div>
 
     <script>
+        function fillOtp(otp) {
+            var input = document.getElementById('otpInput');
+            if (input) {
+                input.value = otp;
+                input.focus();
+                input.style.borderColor = '#28a745';
+                input.style.backgroundColor = '#f0fff4';
+                setTimeout(function () {
+                    input.style.borderColor = '#005fb7';
+                    input.style.backgroundColor = '#fafbfc';
+                }, 800);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             var input = document.getElementById('otpInput');
             if (input) {
