@@ -22,7 +22,7 @@ RUN mkdir -p bootstrap/cache storage/framework/cache/data \
 
 FROM php-base AS production
 ENV APP_ENV=production APP_DEBUG=false LOG_CHANNEL=stderr LOG_LEVEL=info \
-    DB_CONNECTION=mysql SESSION_DRIVER=file SESSION_SECURE_COOKIE=true \
+    DB_CONNECTION=sqlite SESSION_DRIVER=file SESSION_SECURE_COOKIE=true \
     CACHE_STORE=file QUEUE_CONNECTION=sync PORT=10000 RUN_MIGRATIONS=true
 
 COPY --from=build --chown=www-data:www-data /var/www /var/www

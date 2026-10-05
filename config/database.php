@@ -35,7 +35,13 @@ return [
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
-            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'database' => (function () {
+                $db = env('DB_DATABASE');
+                if (empty($db) || (!str_contains($db, '/') && !str_contains($db, '\\') && !str_ends_with($db, '.sqlite'))) {
+                    return database_path('database.sqlite');
+                }
+                return $db;
+            })(),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
             'busy_timeout' => null,

@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasTable('payment_transactions')) {
+        if (Schema::hasTable('payment_transactions') && DB::getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE payment_transactions MODIFY message TEXT NULL');
         }
     }
@@ -22,7 +22,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (Schema::hasTable('payment_transactions')) {
+        if (Schema::hasTable('payment_transactions') && DB::getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE payment_transactions MODIFY message VARCHAR(255) NULL');
         }
     }

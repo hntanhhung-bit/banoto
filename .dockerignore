@@ -19,6 +19,7 @@ bootstrap/cache
 public/hot
 public/storage
 database/*.sqlite*
+!database/database.sqlite
 **/*.sql
 **/*.pem
 **/*.key

@@ -27,6 +27,13 @@ if (( $# > 0 )); then
     exec su-exec www-data "$@"
 fi
 
+# If DB_HOST contains expired aivencloud.com, automatically switch to robust local sqlite
+if [[ "${DB_HOST:-}" == *"aivencloud.com"* ]]; then
+    echo "NOTICE: Aiven MySQL host detected. Falling back to local SQLite database..." >&2
+    export DB_CONNECTION=sqlite
+    export DB_DATABASE=/var/www/database/database.sqlite
+fi
+
 : "${APP_KEY:?Set a persistent APP_KEY before starting the application}"
 : "${APP_URL:?Set APP_URL to the public HTTPS address}"
 export PORT="${PORT:-10000}"
@@ -38,8 +45,10 @@ fi
 # Substitute PORT only; preserve Nginx variables such as $uri and $query_string.
 envsubst '${PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/http.d/default.conf
 
-mkdir -p storage/framework/{cache/data,sessions,views} storage/logs storage/app/public bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
+mkdir -p storage/framework/{cache/data,sessions,views} storage/logs storage/app/public bootstrap/cache database
+touch database/database.sqlite
+chown -R www-data:www-data storage bootstrap/cache database
+chmod -R ug+rwX storage bootstrap/cache database
 
 su-exec www-data php artisan config:cache || echo "WARNING: config:cache failed." >&2
 
