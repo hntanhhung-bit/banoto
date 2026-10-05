@@ -265,6 +265,34 @@
                         </div>
                     </div>
 
+                    @php
+                        $canRefund = (!$rental->partner_id || $rental->partner_commission_status === 'paid');
+                        $comm10Amount = (int) ($rental->partner_commission_fee ?: round(($rental->total_rental_fee + $rental->total_driver_fee) * 0.10));
+                    @endphp
+
+                    @if(!$canRefund)
+                        <div class="alert alert-danger font-weight-bold mb-3 shadow-sm border-danger p-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fa fa-ban fa-2x mr-3 text-danger"></i>
+                                <div>
+                                    <div style="font-size: 14px;">⛔ CHẶN HOÀN CỌC: ĐỐI TÁC CHƯA NỘP 10% HOA HỒNG SÀN</div>
+                                    <div class="small font-weight-normal mt-1 text-dark">
+                                        Showroom đối tác chưa thanh toán <strong>10% phí hoa hồng sàn ({{ number_format($comm10Amount) }} VNĐ)</strong> cho đơn thuê này.
+                                        <br><strong class="text-danger">Quy định Sàn:</strong> Hệ thống chỉ cho phép Admin xác nhận hoàn cọc ký quỹ cho khách hàng sau khi Đối tác đã thanh toán xong phí hoa hồng sàn.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        @if($rental->partner_id)
+                            <div class="alert alert-success small py-2 mb-3">
+                                <i class="fa fa-check-circle mr-1"></i>
+                                <strong>Nghĩa vụ 10% hoa hồng sàn của Đối tác:</strong>
+                                <span class="text-success font-weight-bold">✓ Đã nộp đủ {{ number_format($rental->partner_commission_fee) }} VNĐ (Mã GD: <code>{{ $rental->partner_commission_proof }}</code>).</span>
+                            </div>
+                        @endif
+                    @endif
+
                     <!-- FORM ADMIN DUYỆT & XÁC NHẬN CHUYỂN TIỀN HOÀN CỌC -->
                     <form action="{{ route('admin.rentals.refund', $rental->id) }}" method="POST">
                         @csrf
@@ -272,26 +300,32 @@
                             <div class="col-md-6 form-group">
                                 <label class="small font-weight-bold text-success">Số tiền Admin chuyển hoàn cọc cho khách (VNĐ):</label>
                                 <input type="number" name="refund_amount" class="form-control font-weight-bold text-success" 
-                                    value="{{ $rental->refund_amount > 0 ? $rental->refund_amount : $rental->deposit_amount }}" required>
+                                    value="{{ $rental->refund_amount > 0 ? $rental->refund_amount : $rental->deposit_amount }}" {{ !$canRefund ? 'disabled' : 'required' }}>
                                 <small class="text-muted">Đề xuất của đối tác: {{ number_format($rental->refund_amount ?: $rental->deposit_amount) }} đ</small>
                             </div>
                             <div class="col-md-6 form-group">
                                 <label class="small font-weight-bold text-warning">Giữ lại kiểm tra phạt nguội (VNĐ):</label>
                                 <input type="number" name="refund_holding_fee" class="form-control font-weight-bold text-warning" 
-                                    value="{{ $rental->refund_holding_fee ?: 0 }}">
+                                    value="{{ $rental->refund_holding_fee ?: 0 }}" {{ !$canRefund ? 'disabled' : '' }}>
                                 <small class="text-muted">Khoản giữ đối chiếu camera giao thông</small>
                             </div>
                             <div class="col-12 form-group">
                                 <label class="small font-weight-bold text-muted">Ghi chú đối soát hoàn cọc:</label>
                                 <input type="text" name="refund_notes" class="form-control" 
                                     value="{{ $rental->refund_notes ?: 'Admin sàn đã chuyển khoản hoàn cọc cho khách hàng' }}" 
-                                    placeholder="VD: Đã chuyển khoản hoàn cọc qua Internet Banking...">
+                                    placeholder="VD: Đã chuyển khoản hoàn cọc qua Internet Banking..." {{ !$canRefund ? 'disabled' : '' }}>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success btn-block font-weight-bold py-2 shadow-sm" 
-                            onclick="return confirm('Xác nhận bạn đã chuyển tiền hoàn cọc cho khách hàng vào tài khoản {{ $rental->refund_account_number }}?');">
-                            <i class="fa fa-paper-plane mr-1"></i> XÁC NHẬN ĐÃ CHUYỂN KHOẢN HOÀN CỌC CHO KHÁCH
-                        </button>
+                        @if($canRefund)
+                            <button type="submit" class="btn btn-success btn-block font-weight-bold py-2 shadow-sm" 
+                                onclick="return confirm('Xác nhận bạn đã chuyển tiền hoàn cọc cho khách hàng vào tài khoản {{ $rental->refund_account_number }}?');">
+                                <i class="fa fa-paper-plane mr-1"></i> XÁC NHẬN ĐÃ CHUYỂN KHOẢN HOÀN CỌC CHO KHÁCH
+                            </button>
+                        @else
+                            <button type="button" class="btn btn-secondary btn-block font-weight-bold py-2 shadow-sm" disabled>
+                                <i class="fa fa-lock mr-1"></i> KHÔNG THỂ HOÀN CỌC (CHỜ ĐỐI TÁC NỘP 10% HOA HỒNG SÀN)
+                            </button>
+                        @endif
                     </form>
                 </div>
             </div>
@@ -382,10 +416,10 @@
                                     Nếu khách hàng thanh toán trễ qua MoMo hoặc chuyển khoản ngân hàng ngoài giờ, Admin có quyền bấm xác nhận để hệ thống cấp ngay mã OTP đối chiếu 6 số cho khách tránh mất tiền.
                                 </p>
                                 <form action="{{ route('admin.rentals.confirmDeposit', $rental->id) }}" method="POST"
-                                    onsubmit="return confirm('Xác nhận bạn đã nhận đủ tiền cọc {{ number_format($rental->deposit_amount) }}đ từ khách hàng? Hệ thống sẽ tạo mã OTP đối chiếu nhận xe cho khách ngay lập tức.');">
+                                    onsubmit="return confirm('HỎI LẠI ĐỂ XÁC NHẬN:\n\nBạn có chắc chắn tài khoản ngân hàng của Sàn đã nhận được đủ số tiền cọc {{ number_format($rental->deposit_amount) }} VNĐ từ khách hàng {{ $rental->customer_name }}?\n\nSau khi xác nhận, hệ thống sẽ ghi nhận trạng thái: ĐÃ NHẬN ĐƯỢC CỌC và kích hoạt mã OTP đối chiếu nhận xe cho khách.') && confirm('XÁC NHẬN LẦN CUỐI: Bạn chắc chắn 100% đã nhận được tiền cọc vào tài khoản?');">
                                     @csrf
                                     <button type="submit" class="btn btn-success btn-sm btn-block font-weight-bold shadow-sm py-2">
-                                        <i class="fa fa-check-circle mr-1"></i> XÁC NHẬN ĐÃ NHẬN CỌC (CẤP MÃ OTP CHO KHÁCH)
+                                        <i class="fa fa-check-circle mr-1"></i> XÁC NHẬN: ĐÃ NHẬN ĐƯỢC CỌC (CẤP MÃ OTP CHO KHÁCH)
                                     </button>
                                 </form>
                             </div>

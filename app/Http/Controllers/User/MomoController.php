@@ -68,6 +68,22 @@ class MomoController extends Controller
             return redirect()->route('partner.rentals')->with('success', '✅ Đã nộp 10% hoa hồng sàn (' . number_format($rental->partner_commission_fee) . ' VNĐ) qua Cổng MoMo Test thành công! Bạn có thể mở biên bản nghiệm thu xe để hoàn tất.');
         }
 
+        // 1b. Kiểm tra nếu là đối tác nộp 1% hoa hồng môi giới bán xe (Appointment)
+        $commissionAppId = $momo->appointmentCommissionId($request->all());
+        if ($commissionAppId) {
+            $appointment = \App\Models\Appointment::find($commissionAppId);
+            if (!$momo->isValidSuccessfulResponse($request->all())) {
+                if ($momo->isValidResponse($request->all())) {
+                    $this->markFailed($request->all(), $momo);
+                }
+                return redirect()->route('partner.appointments')->with('warning', 'Giao dịch nộp 1% hoa hồng môi giới bán xe qua MoMo Test chưa hoàn tất hoặc bị hủy. Vui lòng thử lại.');
+            }
+
+            $this->completeAppointmentCommissionPayment($request->all(), $momo);
+            $appointment?->refresh();
+            return redirect()->route('partner.appointments')->with('success', '✅ Đã nộp 1% hoa hồng Sàn (' . number_format($appointment->commission_amount) . ' VNĐ) qua Cổng MoMo Test thành công! Lịch hẹn đã chốt mua và khóa trạng thái.');
+        }
+
         // 2. Kiểm tra xem đây là giao dịch thuê xe hay giao dịch mua xe
         $rentalId = $momo->rentalId($request->all());
         if ($rentalId) {
@@ -156,6 +172,17 @@ class MomoController extends Controller
         if ($commissionRentalId) {
             if ($momo->isSuccessful($request->all())) {
                 $this->completeCommissionPayment($request->all(), $momo);
+            } else {
+                $this->markFailed($request->all(), $momo);
+            }
+            return response()->json(['message' => 'Received']);
+        }
+
+        // 1b. Kiểm tra nếu là đối tác nộp 1% hoa hồng bán xe (Appointment)
+        $commissionAppId = $momo->appointmentCommissionId($request->all());
+        if ($commissionAppId) {
+            if ($momo->isSuccessful($request->all())) {
+                $this->completeAppointmentCommissionPayment($request->all(), $momo);
             } else {
                 $this->markFailed($request->all(), $momo);
             }
@@ -400,6 +427,40 @@ class MomoController extends Controller
             ]);
 
             $momo->markPaid($transaction, $payload);
+        });
+    }
+
+    private function completeAppointmentCommissionPayment(array $payload, MomoService $momo): void
+    {
+        DB::transaction(function () use ($payload, $momo) {
+            $transaction = PaymentTransaction::where('gateway', 'momo')
+                ->where('gateway_order_id', $payload['orderId'] ?? '')
+                ->lockForUpdate()
+                ->first();
+
+            $appId = $momo->appointmentCommissionId($payload);
+            $appointment = $appId ? \App\Models\Appointment::lockForUpdate()->find($appId) : null;
+            if (!$appointment) {
+                return;
+            }
+
+            $carPrice = (float) ($appointment->deal_price ?: ($appointment->product?->price ?: 500000000));
+            $commission1 = round($carPrice * 0.01);
+            $transId = (string) ($payload['transId'] ?? ($payload['orderId'] ?? 'MOMO_' . time()));
+
+            $appointment->update([
+                'deal_status' => 'deal_won',
+                'deal_price' => $carPrice,
+                'commission_amount' => $commission1,
+                'commission_status' => 'paid',
+                'commission_proof' => $transId,
+                'commission_paid_at' => now(),
+                'status' => 'completed',
+            ]);
+
+            if ($transaction) {
+                $momo->markPaid($transaction, $payload);
+            }
         });
     }
 }

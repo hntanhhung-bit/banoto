@@ -63,6 +63,7 @@
                         <!-- Form nhập mã OTP -->
                         <form method="POST" action="{{ route('verification.otp') }}">
                             @csrf
+
                             <div class="form-group text-center mb-4">
                                 <label for="otpInput" class="font-weight-bold text-secondary text-uppercase"
                                     style="font-size: 13px; letter-spacing: 0.5px;">

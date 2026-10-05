@@ -85,50 +85,47 @@
             </div>
         </div>
 
-        <!-- FORM THAO TÁC HÀNG LOẠT (BULK ACTIONS) -->
-        <form id="bulkRentalForm" action="{{ route('admin.rentals.bulkStatus') }}" method="POST">
-            @csrf
-            <!-- THANH CÔNG CỤ THAO TÁC HÀNG LOẠT -->
-            <div class="card border-0 shadow-sm mb-3 bg-white" style="border-radius: 10px;">
-                <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between flex-wrap">
-                    <div class="d-flex align-items-center flex-wrap mb-2 mb-md-0">
-                        <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark mr-3" style="font-size: 13px;">
-                            <i class="fa fa-check-square text-primary mr-1"></i> Đã chọn: 
-                            <span id="selectedRentalCount" class="text-danger font-weight-bold">0</span> đơn thuê xe
-                        </span>
-                        
-                        <div class="d-flex align-items-center mr-2 mb-1 mb-md-0">
-                            <span class="small font-weight-bold text-muted mr-1">Trạng thái đơn:</span>
-                            <select name="rental_status" id="bulkRentalStatus" class="custom-select custom-select-sm" style="min-width: 140px;">
-                                <option value="">-- Giữ nguyên --</option>
-                                <option value="pending">⏳ Chờ duyệt</option>
-                                <option value="confirmed">✓ Đã duyệt</option>
-                                <option value="in_progress">🚗 Đang phục vụ</option>
-                                <option value="returned">★ Đã trả xe</option>
-                                <option value="cancelled">✕ Đã hủy</option>
-                            </select>
-                        </div>
-
-                        <div class="d-flex align-items-center mr-2 mb-1 mb-md-0">
-                            <span class="small font-weight-bold text-muted mr-1">Thanh toán & Cọc:</span>
-                            <select name="payment_status" id="bulkRentalPayment" class="custom-select custom-select-sm" style="min-width: 150px;">
-                                <option value="">-- Giữ nguyên --</option>
-                                <option value="deposit_paid">✓ Đã nhận cọc (Cấp OTP)</option>
-                                <option value="fully_paid">✅ Đã tất toán đủ</option>
-                                <option value="unpaid">⌛ Chưa cọc/Chưa trả</option>
-                            </select>
-                        </div>
-
-                        <button type="submit" id="btnBulkRentalSubmit" class="btn btn-sm btn-primary font-weight-bold shadow-sm" disabled onclick="return confirm('Bạn có chắc muốn cập nhật trạng thái cho các đơn thuê xe đã chọn?');">
-                            <i class="fa fa-refresh mr-1"></i> Cập nhật hàng loạt
-                        </button>
-                    </div>
+        <!-- THANH CÔNG CỤ THAO TÁC HÀNG LOẠT (BULK ACTIONS BAR) -->
+        <div class="card border-0 shadow-sm mb-3 bg-white" style="border-radius: 10px;">
+            <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between flex-wrap">
+                <div class="d-flex align-items-center flex-wrap mb-2 mb-md-0">
+                    <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark mr-3" style="font-size: 13px;">
+                        <i class="fa fa-check-square text-primary mr-1"></i> Đã chọn: 
+                        <span id="selectedRentalCount" class="text-danger font-weight-bold">0</span> đơn thuê xe
+                    </span>
                     
-                    <div class="small text-muted">
-                        <i class="fa fa-info-circle text-info"></i> Tích chọn các ô để thay đổi trạng thái cùng lúc
+                    <div class="d-flex align-items-center mr-2 mb-1 mb-md-0">
+                        <span class="small font-weight-bold text-muted mr-1">Trạng thái đơn:</span>
+                        <select id="bulkRentalStatus" class="custom-select custom-select-sm" style="min-width: 140px;">
+                            <option value="">-- Giữ nguyên --</option>
+                            <option value="pending">⏳ Chờ duyệt</option>
+                            <option value="confirmed">✓ Đã duyệt</option>
+                            <option value="in_progress">🚗 Đang phục vụ</option>
+                            <option value="returned">★ Đã trả xe</option>
+                            <option value="cancelled">✕ Đã hủy</option>
+                        </select>
                     </div>
+
+                    <div class="d-flex align-items-center mr-2 mb-1 mb-md-0">
+                        <span class="small font-weight-bold text-muted mr-1">Thanh toán & Cọc:</span>
+                        <select id="bulkRentalPayment" class="custom-select custom-select-sm" style="min-width: 150px;">
+                            <option value="">-- Giữ nguyên --</option>
+                            <option value="deposit_paid">✓ Đã nhận cọc (Cấp OTP)</option>
+                            <option value="fully_paid">✅ Đã tất toán đủ</option>
+                            <option value="unpaid">⌛ Chưa cọc/Chưa trả</option>
+                        </select>
+                    </div>
+
+                    <button type="button" id="btnBulkRentalSubmit" class="btn btn-sm btn-primary font-weight-bold shadow-sm" disabled>
+                        <i class="fa fa-refresh mr-1"></i> Cập nhật hàng loạt
+                    </button>
+                </div>
+                
+                <div class="small text-muted">
+                    <i class="fa fa-info-circle text-info"></i> Tích chọn các ô để thay đổi trạng thái cùng lúc
                 </div>
             </div>
+        </div>
 
             <!-- Danh sách đơn thuê xe -->
             <div class="card border-0 shadow-sm rounded-lg overflow-hidden">
@@ -289,22 +286,29 @@
                                                         <i class="fa fa-check-circle"></i> Đã nộp 10% HH: {{ number_format($rental->partner_commission_fee) }}đ
                                                     </span>
                                                 @else
-                                                    <span class="badge badge-warning btn-block mb-1 text-dark font-weight-bold" style="background-color: #ffeeba; border: 1px solid #f5c6cb;">
-                                                        <i class="fa fa-clock-o text-danger"></i> Chưa nộp 10% hoa hồng sàn
+                                                    <span class="badge badge-warning btn-block mb-1 text-dark font-weight-bold" style="background-color: #fff3cd; border: 1px solid #ffeeba;" title="Chưa thể hoàn cọc cho đến khi đối tác nộp 10% hoa hồng sàn">
+                                                        <i class="fa fa-exclamation-triangle text-danger mr-1"></i> Chưa nộp 10% hoa hồng sàn
                                                     </span>
                                                 @endif
                                             @endif
 
                                             @if($rental->refund_status === 'refunded')
-                                                <span class="badge badge-success btn-block"><i class="fa fa-check-circle"></i> Sàn đã hoàn cọc: {{ number_format($rental->refund_amount) }}đ</span>
+                                                <span class="badge badge-success btn-block py-1 font-weight-bold"><i class="fa fa-check-circle"></i> Sàn đã hoàn cọc: {{ number_format($rental->refund_amount) }}đ</span>
                                             @elseif($isWaitingRefund)
                                                 <span class="badge badge-danger btn-block font-weight-bold py-1 animate-pulse">
                                                     <i class="fa fa-exclamation-triangle"></i> CẦN THANH TOÁN HOÀN CỌC
                                                 </span>
                                             @elseif($rental->payment_status === 'deposit_paid' || $rental->payment_status === 'fully_paid')
-                                                <span class="badge badge-info btn-block"><i class="fa fa-shield"></i> Sàn giữ cọc Escrow</span>
+                                                <span class="badge badge-success btn-block py-1 font-weight-bold" style="font-size: 11px;">
+                                                    <i class="fa fa-check-circle"></i> ĐÃ NHẬN ĐƯỢC CỌC ({{ number_format($rental->deposit_amount) }}đ)
+                                                </span>
+                                                <small class="text-muted d-block text-center mt-1" style="font-size: 10px;">
+                                                    <i class="fa fa-shield text-info"></i> Sàn giữ cọc Escrow
+                                                </small>
                                             @else
-                                                <span class="badge badge-secondary btn-block">Chưa nộp tiền cọc</span>
+                                                <span class="badge badge-secondary btn-block py-1 font-weight-bold">
+                                                    <i class="fa fa-clock-o"></i> Chưa nộp tiền cọc
+                                                </span>
                                             @endif
                                         </div>
                                     </div>
@@ -313,40 +317,64 @@
                                 <!-- Cột 6: Thao tác -->
                                 <td class="text-right px-3 align-middle">
                                     @if($isWaitingRefund)
-                                        <!-- NÚT HOÀN CỌC NỔI BẬT DÀNH CHO ADMIN -->
-                                        <button type="button" class="btn btn-warning btn-sm font-weight-bold btn-block mb-1 shadow-sm"
-                                            data-toggle="modal" data-target="#adminRefundModal{{ $rental->id }}">
-                                            <i class="fa fa-money mr-1"></i> Thanh toán hoàn cọc
-                                        </button>
+                                        @php
+                                            $canRefund = (!$rental->partner_id || $rental->partner_commission_status === 'paid');
+                                            $comm10Amount = (int) ($rental->partner_commission_fee ?: round(($rental->total_rental_fee + $rental->total_driver_fee) * 0.10));
+                                        @endphp
+
+                                        <!-- NÚT HOÀN CỌC DÀNH CHO ADMIN -->
+                                        @if($canRefund)
+                                            <button type="button" class="btn btn-warning btn-sm font-weight-bold btn-block mb-1 shadow-sm text-dark"
+                                                data-toggle="modal" data-target="#adminRefundModal{{ $rental->id }}">
+                                                <i class="fa fa-money mr-1"></i> Thanh toán hoàn cọc
+                                            </button>
+                                        @else
+                                            <button type="button" class="btn btn-outline-warning btn-sm font-weight-bold btn-block mb-1 shadow-sm text-dark"
+                                                data-toggle="modal" data-target="#adminRefundModal{{ $rental->id }}" title="Đối tác chưa nộp 10% hoa hồng sàn">
+                                                <i class="fa fa-ban mr-1 text-danger"></i> Chờ đối tác nộp 10% HH
+                                            </button>
+                                        @endif
 
                                         <!-- MODAL ADMIN THANH TOÁN HOÀN CỌC NHANH -->
                                         <div class="modal fade text-left" id="adminRefundModal{{ $rental->id }}" tabindex="-1" role="dialog">
                                             <div class="modal-dialog modal-dialog-centered" role="document">
-                                                <div class="modal-content border-0 shadow">
-                                                    <div class="modal-header bg-warning text-dark font-weight-bold">
+                                                <div class="modal-content border-0 shadow-lg">
+                                                    <div class="modal-header {{ $canRefund ? 'bg-warning text-dark' : 'bg-secondary text-white' }} font-weight-bold">
                                                         <h6 class="modal-title font-weight-bold">
                                                             <i class="fa fa-money mr-1"></i> THANH TOÁN HOÀN CỌC CHO KHÁCH #{{ $rental->rental_code }}
                                                         </h6>
-                                                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                                        <button type="button" class="close text-dark" data-dismiss="modal">&times;</button>
                                                     </div>
                                                     <form action="{{ route('admin.rentals.refund', $rental->id) }}" method="POST">
                                                         @csrf
                                                         <div class="modal-body">
-                                                            <div class="alert alert-success small mb-3">
-                                                                <i class="fa fa-check-circle mr-1"></i> <strong>Showroom đối tác ({{ $showroomName }}) đã nghiệm thu xe xong!</strong><br>
-                                                                Admin tiến hành chuyển khoản trả lại tiền cọc ký quỹ Escrow cho khách theo thông tin tài khoản dưới đây.
-                                                            </div>
-
-                                                            @if($rental->partner_id)
-                                                                <div class="alert alert-{{ $rental->partner_commission_status === 'paid' ? 'success' : 'warning' }} small py-2 mb-3">
-                                                                    <i class="fa fa-{{ $rental->partner_commission_status === 'paid' ? 'check-circle' : 'exclamation-triangle' }} mr-1"></i>
-                                                                    <strong>Nghĩa vụ 10% hoa hồng sàn của Đối tác:</strong><br>
-                                                                    @if($rental->partner_commission_status === 'paid')
-                                                                        <span class="text-success font-weight-bold">✓ Đối tác đã nộp {{ number_format($rental->partner_commission_fee) }} VNĐ (Mã GD ngân hàng: <code>{{ $rental->partner_commission_proof }}</code>).</span>
-                                                                    @else
-                                                                        <span class="text-danger font-weight-bold">⚠ Cảnh báo: Đối tác chưa hoàn thành nộp 10% hoa hồng cho Sàn!</span>
-                                                                    @endif
+                                                            @if(!$canRefund)
+                                                                <!-- CẢNH BÁO CHẶN HOÀN CỌC NẾU ĐỐI TÁC CHƯA NỘP 10% HOA HỒNG -->
+                                                                <div class="alert alert-danger font-weight-bold mb-3 shadow-sm border-danger p-3">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <i class="fa fa-ban fa-2x mr-2 text-danger"></i>
+                                                                        <div>
+                                                                            <div style="font-size: 14px;">⛔ CHẶN HOÀN CỌC: ĐỐI TÁC CHƯA NỘP 10% HOA HỒNG SÀN</div>
+                                                                            <div class="small font-weight-normal mt-1 text-dark">
+                                                                                Showroom đối tác (<strong>{{ $showroomName }}</strong>) chưa thanh toán <strong>10% phí hoa hồng sàn ({{ number_format($comm10Amount) }} VNĐ)</strong> cho đơn thuê này.
+                                                                                <br><br>
+                                                                                <strong class="text-danger">Quy định Sàn:</strong> Hệ thống chỉ cho phép Admin xác nhận hoàn cọc ký quỹ cho khách hàng sau khi Đối tác đã thanh toán đủ 10% hoa hồng sàn.
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
+                                                            @else
+                                                                <div class="alert alert-success small mb-3">
+                                                                    <i class="fa fa-check-circle mr-1"></i> <strong>Showroom đối tác ({{ $showroomName }}) đã nghiệm thu xe xong!</strong><br>
+                                                                    Admin tiến hành chuyển khoản trả lại tiền cọc ký quỹ Escrow cho khách theo thông tin tài khoản dưới đây.
+                                                                </div>
+                                                                @if($rental->partner_id)
+                                                                    <div class="alert alert-success small py-2 mb-3">
+                                                                        <i class="fa fa-check-circle mr-1"></i>
+                                                                        <strong>Nghĩa vụ 10% hoa hồng sàn của Đối tác:</strong><br>
+                                                                        <span class="text-success font-weight-bold">✓ Đối tác đã nộp đủ {{ number_format($rental->partner_commission_fee) }} VNĐ (Mã GD ngân hàng: <code>{{ $rental->partner_commission_proof }}</code>).</span>
+                                                                    </div>
+                                                                @endif
                                                             @endif
 
                                                             <!-- KHỐI THÔNG TIN TÀI KHOẢN NGÂN HÀNG CỦA KHÁCH -->
@@ -382,13 +410,13 @@
                                                                 <div class="col-md-6 form-group">
                                                                     <label class="small font-weight-bold text-success">Số tiền hoàn cọc chuyển khách (VNĐ):</label>
                                                                     <input type="number" name="refund_amount" class="form-control font-weight-bold text-success"
-                                                                        value="{{ $rental->refund_amount > 0 ? $rental->refund_amount : $rental->deposit_amount }}" required>
+                                                                        value="{{ $rental->refund_amount > 0 ? $rental->refund_amount : $rental->deposit_amount }}" {{ !$canRefund ? 'disabled' : 'required' }}>
                                                                     <small class="text-muted">Theo đề xuất đối tác</small>
                                                                 </div>
                                                                 <div class="col-md-6 form-group">
                                                                     <label class="small font-weight-bold text-warning">Giữ lại phạt nguội (VNĐ):</label>
                                                                     <input type="number" name="refund_holding_fee" class="form-control font-weight-bold text-warning"
-                                                                        value="{{ $rental->refund_holding_fee ?: 0 }}">
+                                                                        value="{{ $rental->refund_holding_fee ?: 0 }}" {{ !$canRefund ? 'disabled' : '' }}>
                                                                     <small class="text-muted">Nếu có thỏa thuận</small>
                                                                 </div>
                                                             </div>
@@ -397,15 +425,21 @@
                                                                 <label class="small font-weight-bold text-muted">Ghi chú đối soát hoàn cọc:</label>
                                                                 <input type="text" name="refund_notes" class="form-control form-control-sm"
                                                                     value="{{ $rental->refund_notes ?: 'Admin đã chuyển khoản hoàn cọc cho khách hàng' }}"
-                                                                    placeholder="VD: Đã chuyển khoản qua Internet Banking...">
+                                                                    placeholder="VD: Đã chuyển khoản qua Internet Banking..." {{ !$canRefund ? 'disabled' : '' }}>
                                                             </div>
                                                         </div>
                                                         <div class="modal-footer bg-light">
-                                                            <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Đóng</button>
-                                                            <button type="submit" class="btn btn-success btn-sm font-weight-bold"
-                                                                onclick="return confirm('Xác nhận bạn đã chuyển khoản hoàn cọc cho khách hàng vào tài khoản {{ $rental->refund_account_number }}?');">
-                                                                <i class="fa fa-paper-plane mr-1"></i> XÁC NHẬN ĐÃ CHUYỂN TIỀN HOÀN CỌC
-                                                            </button>
+                                                            <button type="button" class="btn btn-secondary btn-sm font-weight-bold" data-dismiss="modal">Đóng</button>
+                                                            @if($canRefund)
+                                                                <button type="submit" class="btn btn-success btn-sm font-weight-bold"
+                                                                    onclick="return confirm('Xác nhận bạn đã chuyển khoản hoàn cọc cho khách hàng vào tài khoản {{ $rental->refund_account_number }}?');">
+                                                                    <i class="fa fa-paper-plane mr-1"></i> XÁC NHẬN ĐÃ CHUYỂN TIỀN HOÀN CỌC
+                                                                </button>
+                                                            @else
+                                                                <button type="button" class="btn btn-secondary btn-sm font-weight-bold" disabled>
+                                                                    <i class="fa fa-lock mr-1"></i> KHÔNG THỂ HOÀN CỌC (CHỜ ĐỐI TÁC NỘP 10% HH)
+                                                                </button>
+                                                            @endif
                                                         </div>
                                                     </form>
                                                 </div>
@@ -413,15 +447,82 @@
                                         </div>
                                     @endif
 
+                                    <!-- NÚT XÁC NHẬN NHẬN CỌC (KÈM MODAL HỎI LẠI ĐỂ XÁC NHẬN) -->
                                     @if($rental->payment_status === 'unpaid')
-                                        <form action="{{ route('admin.rentals.confirmDeposit', $rental->id) }}" method="POST" class="mb-1"
-                                            onsubmit="return confirm('Xác nhận bạn đã nhận tiền cọc {{ number_format($rental->deposit_amount) }}đ của khách hàng (trường hợp chuyển khoản trễ)?\n\nHệ thống sẽ cấp ngay mã đối chiếu nhận xe 6 số cho khách hàng.');">
-                                            @csrf
-                                            <button type="submit" class="btn btn-success btn-sm btn-block font-weight-bold shadow-sm"
-                                                title="Khách chuyển khoản/thanh toán trễ - Bấm để xác nhận cọc">
-                                                <i class="fa fa-check-circle mr-1"></i> Xác nhận nhận cọc
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-success btn-sm btn-block font-weight-bold shadow-sm mb-1"
+                                            data-toggle="modal" data-target="#confirmDepositModal{{ $rental->id }}"
+                                            title="Bấm để xác nhận đã nhận cọc và cấp mã nhận xe">
+                                            <i class="fa fa-check-circle mr-1"></i> Xác nhận nhận cọc
+                                        </button>
+
+                                        <!-- MODAL XÁC NHẬN ĐÃ NHẬN TIỀN CỌC KÈM HỎI LẠI XÁC NHẬN -->
+                                        <div class="modal fade text-left" id="confirmDepositModal{{ $rental->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                                <div class="modal-content border-0 shadow-lg">
+                                                    <div class="modal-header bg-success text-white">
+                                                        <h6 class="modal-title font-weight-bold">
+                                                            <i class="fa fa-shield mr-1"></i> XÁC NHẬN ĐÃ NHẬN ĐƯỢC TIỀN CỌC
+                                                        </h6>
+                                                        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                                                    </div>
+                                                    <form action="{{ route('admin.rentals.confirmDeposit', $rental->id) }}" method="POST">
+                                                        @csrf
+                                                        <div class="modal-body p-4">
+                                                            <div class="alert alert-info small mb-3">
+                                                                <i class="fa fa-info-circle mr-1"></i> Bạn đang thực hiện thao tác thủ công xác nhận tiền cọc cho khách hàng thanh toán ngoài hoặc chuyển khoản trễ.
+                                                            </div>
+
+                                                            <!-- THÔNG TIN ĐƠN & TIỀN CỌC -->
+                                                            <div class="p-3 bg-light rounded border mb-3 small">
+                                                                <div class="d-flex justify-content-between mb-1">
+                                                                    <span class="text-muted">Mã hợp đồng:</span>
+                                                                    <strong class="text-primary font-weight-bold">#{{ $rental->rental_code }}</strong>
+                                                                </div>
+                                                                <div class="d-flex justify-content-between mb-1">
+                                                                    <span class="text-muted">Khách hàng:</span>
+                                                                    <strong class="text-dark">{{ $rental->customer_name }} ({{ $rental->customer_phone }})</strong>
+                                                                </div>
+                                                                <div class="d-flex justify-content-between mb-1">
+                                                                    <span class="text-muted">Mẫu xe thuê:</span>
+                                                                    <strong class="text-dark">{{ $rental->product->name ?? 'Xe tự lái' }}</strong>
+                                                                </div>
+                                                                <div class="d-flex justify-content-between mb-1 border-top pt-2 mt-2">
+                                                                    <span class="text-dark font-weight-bold">Số tiền cọc cần thu:</span>
+                                                                    <strong class="text-danger font-weight-bold" style="font-size: 17px;">
+                                                                        {{ number_format($rental->deposit_amount) }} VNĐ
+                                                                    </strong>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- CẢNH BÁO HỎI LẠI ĐỂ XÁC NHẬN (DOUBLE CONFIRMATION) -->
+                                                            <div class="alert alert-warning border-warning p-3 mb-0">
+                                                                <div class="d-flex align-items-start">
+                                                                    <i class="fa fa-question-circle fa-2x text-warning mr-2 mt-1"></i>
+                                                                    <div>
+                                                                        <strong class="text-dark" style="font-size: 13px;">HỎI LẠI ĐỂ XÁC NHẬN:</strong>
+                                                                        <p class="small text-dark mb-1 mt-1">
+                                                                            Bạn có chắc chắn tài khoản ngân hàng của Sàn đã thực tế nhận đủ số tiền <strong>{{ number_format($rental->deposit_amount) }} VNĐ</strong> từ khách hàng chưa?
+                                                                        </p>
+                                                                        <div class="small text-muted font-italic">
+                                                                            Khi bấm xác nhận, hệ thống sẽ tự động cập nhật trạng thái đơn thành: <strong class="text-success">"ĐÃ NHẬN ĐƯỢC CỌC"</strong> và lập tức kích hoạt mã OTP 6 số để khách nhận xe.
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer bg-light py-2">
+                                                            <button type="button" class="btn btn-secondary btn-sm font-weight-bold" data-dismiss="modal">
+                                                                Hủy bỏ / Chưa nhận được
+                                                            </button>
+                                                            <button type="submit" class="btn btn-success btn-sm font-weight-bold px-3 shadow-sm"
+                                                                    onclick="return confirm('XÁC NHẬN LẦN CUỐI:\n\nBạn chắc chắn 100% đã nhận được ' + '{{ number_format($rental->deposit_amount) }}' + ' VNĐ tiền cọc vào tài khoản?');">
+                                                                <i class="fa fa-check-circle mr-1"></i> TÔI XÁC NHẬN: ĐÃ NHẬN ĐƯỢC CỌC
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     @endif
 
                                     <a href="{{ route('admin.rentals.show', $rental->id) }}"
@@ -459,8 +560,15 @@
                 </div>
             @endif
         </div>
-    </form>
 </div>
+
+<!-- FORM ẨN ĐỂ SUBMIT BULK ACTION (TRÁNH LỖI NESTED FORM) -->
+<form id="bulkRentalForm" action="{{ route('admin.rentals.bulkStatus') }}" method="POST" style="display: none;">
+    @csrf
+    <input type="hidden" name="rental_status" id="hiddenRentalStatus" value="">
+    <input type="hidden" name="payment_status" id="hiddenRentalPayment" value="">
+    <div id="hiddenRentalIdsContainer"></div>
+</form>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -470,6 +578,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnSubmit = document.getElementById('btnBulkRentalSubmit');
     const selectStatus = document.getElementById('bulkRentalStatus');
     const selectPayment = document.getElementById('bulkRentalPayment');
+    const hiddenForm = document.getElementById('bulkRentalForm');
+    const hiddenStatus = document.getElementById('hiddenRentalStatus');
+    const hiddenPayment = document.getElementById('hiddenRentalPayment');
+    const hiddenContainer = document.getElementById('hiddenRentalIdsContainer');
 
     function updateState() {
         const checked = document.querySelectorAll('.rental-checkbox:checked');
@@ -500,6 +612,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (selectStatus) selectStatus.addEventListener('change', updateState);
     if (selectPayment) selectPayment.addEventListener('change', updateState);
+
+    if (btnSubmit) {
+        btnSubmit.addEventListener('click', function () {
+            const checked = document.querySelectorAll('.rental-checkbox:checked');
+            if (checked.length === 0) {
+                alert('Vui lòng chọn ít nhất một đơn thuê xe!');
+                return;
+            }
+            if (!confirm('Bạn có chắc muốn cập nhật trạng thái cho các đơn thuê xe đã chọn?')) {
+                return;
+            }
+
+            hiddenStatus.value = selectStatus.value;
+            hiddenPayment.value = selectPayment.value;
+            hiddenContainer.innerHTML = '';
+
+            checked.forEach(cb => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'rental_ids[]';
+                input.value = cb.value;
+                hiddenContainer.appendChild(input);
+            });
+
+            hiddenForm.submit();
+        });
+    }
 });
 </script>
 @endsection

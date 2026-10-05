@@ -25,3 +25,10 @@ database/*.sqlite*
 **/*.log
 test.cs
 docker/*.env*
+*.docx
+*.pdf
+*.pptx
+*.zip
+Data/
+Output/
+jira_bugs_screenshots/

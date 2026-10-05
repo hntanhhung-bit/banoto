@@ -28,12 +28,15 @@ class Appointment extends Model
         'commission_rate',
         'commission_amount',
         'commission_status',
+        'commission_proof',
+        'commission_paid_at',
         'note',
         'admin_note',
     ];
 
     protected $casts = [
         'appointment_date' => 'date',
+        'commission_paid_at' => 'datetime',
     ];
 
     public function user()

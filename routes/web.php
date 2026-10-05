@@ -58,9 +58,9 @@ Route::post('/email/verify-otp', function (Request $request) {
 // 3. Route cấp lại mã OTP mới
 Route::post('/email/resend-otp', function (Request $request) {
     $user = $request->user();
-    $user->generateVerificationOtp();
+    $otp = $user->generateVerificationOtp();
     return back()->with('success', 'Mã OTP mới đã được gửi thành công đến email: ' . $user->email . '. Vui lòng kiểm tra hộp thư đến (Inbox) hoặc thư rác (Spam).');
-})->middleware(['auth', 'throttle:10,1'])->name('verification.resend_otp');
+})->middleware(['auth', 'throttle:15,1'])->name('verification.resend_otp');
 
 // 4. Route xử lý khi người dùng click vào link xác minh trong email (nếu có)
 Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
@@ -253,12 +253,14 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('/send', [\App\Http\Controllers\Admin\ChatController::class, 'send'])->name('send');
     });
 
-    // ================= CẤU HÌNH & KẾT NỐI GMAIL API (HTTPS 443) =================
+    // ================= CẤU HÌNH & KẾT NỐI GMAIL API & MẮT BÃO EMAIL =================
     Route::get('/admin/gmail', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'index'])->name('admin.gmail.index');
     Route::get('/admin/gmail/connect', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'connect'])->name('admin.gmail.connect');
     Route::get('/admin/gmail/callback', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'callback'])->name('admin.gmail.callback');
     Route::post('/admin/gmail/send-test', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'sendTest'])->name('admin.gmail.sendTest');
     Route::post('/admin/gmail/disconnect', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'disconnect'])->name('admin.gmail.disconnect');
+    Route::post('/admin/smtp/save', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'saveSmtp'])->name('admin.smtp.save');
+    Route::post('/admin/smtp/send-test', [\App\Http\Controllers\Admin\GmailOAuthController::class, 'sendTestSmtp'])->name('admin.smtp.sendTest');
 });
 
 // ================= ROUTE DÀNH CHO ĐỐI TÁC SHOWROOM / NHÀ XE =================
@@ -277,9 +279,12 @@ Route::middleware(['auth', 'partner'])->prefix('partner')->name('partner.')->gro
     Route::put('/cars/{product}', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'updateCar'])->name('cars.update');
     Route::delete('/cars/{product}', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'destroyCar'])->name('cars.destroy');
     Route::patch('/cars/{product}/status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'updateCarStatus'])->name('cars.updateStatus');
+    Route::post('/cars/bulk-status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'bulkUpdateCarStatus'])->name('cars.bulkStatus');
     
     Route::get('/appointments', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'appointments'])->name('appointments');
     Route::patch('/appointments/{appointment}/status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'updateAppointmentStatus'])->name('appointments.updateStatus');
+    Route::get('/appointments/{appointment}/pay-commission-momo', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'payAppointmentCommissionMomo'])->name('appointments.payCommissionMomo');
+    Route::post('/appointments/{appointment}/confirm-commission', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'confirmAppointmentCommission'])->name('appointments.confirmCommission');
     
     Route::get('/rentals', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'rentals'])->name('rentals');
     Route::post('/rentals/bulk-status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'bulkUpdateRentalStatus'])->name('rentals.bulkStatus');

@@ -333,4 +333,79 @@ class MomoService
         }
         return null;
     }
+
+    public function createAppointmentCommissionPayment(\App\Models\Appointment $appointment, PaymentTransaction $transaction, string $requestType = 'captureWallet'): array
+    {
+        $endpoint = config('services.momo.endpoint', 'https://test-payment.momo.vn/v2/gateway/api/create');
+        $partnerCode = config('services.momo.partner_code', env('MOMO_PARTNER_CODE', ''));
+        $accessKey = config('services.momo.access_key', env('MOMO_ACCESS_KEY', ''));
+        $secretKey = config('services.momo.secret_key', env('MOMO_SECRET_KEY', ''));
+
+        $carPrice = (float) ($appointment->deal_price ?: ($appointment->product?->price ?: 500000000));
+        $commission1 = (int) ($appointment->commission_amount ?: round($carPrice * 0.01));
+
+        $orderInfo = 'Nop 1% hoa hong san mua xe #' . $appointment->appointment_code;
+        $amount = (string) $commission1;
+        $orderId = 'APPCOMM_' . $appointment->id . '_' . $transaction->id . '_' . time();
+        $redirectUrl = config('services.momo.redirect_url') ?: route('user.payment.momo.callback');
+        $ipnUrl = config('services.momo.ipn_url') ?: route('payment.momo.ipn');
+        $extraData = 'APPCOMMISSION_' . $appointment->id;
+        $requestId = (string) time();
+
+        $rawHash = 'accessKey=' . $accessKey .
+            '&amount=' . $amount .
+            '&extraData=' . $extraData .
+            '&ipnUrl=' . $ipnUrl .
+            '&orderId=' . $orderId .
+            '&orderInfo=' . $orderInfo .
+            '&partnerCode=' . $partnerCode .
+            '&redirectUrl=' . $redirectUrl .
+            '&requestId=' . $requestId .
+            '&requestType=' . $requestType;
+
+        $signature = hash_hmac('sha256', $rawHash, $secretKey);
+
+        $data = [
+            'partnerCode' => $partnerCode,
+            'partnerName' => 'AutoCar Portal Showroom',
+            'storeId' => 'AutoCarStore',
+            'requestId' => $requestId,
+            'amount' => $amount,
+            'orderId' => $orderId,
+            'orderInfo' => $orderInfo,
+            'redirectUrl' => $redirectUrl,
+            'ipnUrl' => $ipnUrl,
+            'lang' => 'vi',
+            'extraData' => $extraData,
+            'requestType' => $requestType,
+            'signature' => $signature,
+        ];
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(15)->post($endpoint, $data);
+            $result = $response->json();
+            $transaction->update([
+                'request_payload' => $data,
+                'response_payload' => $result,
+            ]);
+            return $result ?: [];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Momo createAppointmentCommissionPayment error: ' . $e->getMessage());
+            $transaction->update([
+                'status' => 'failed',
+                'message' => 'Lỗi kết nối tới MoMo: ' . $e->getMessage(),
+            ]);
+            return ['resultCode' => -1, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function appointmentCommissionId(array $payload): ?int
+    {
+        $extraData = $payload['extraData'] ?? '';
+        if (str_starts_with($extraData, 'APPCOMMISSION_')) {
+            $id = substr($extraData, 14);
+            return is_numeric($id) ? (int) $id : null;
+        }
+        return null;
+    }
 }

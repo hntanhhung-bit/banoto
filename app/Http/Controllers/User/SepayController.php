@@ -144,6 +144,49 @@ class SepayController extends Controller
             return response()->json(['success' => true, 'paid' => false]);
         }
 
+        if ($type === 'appointment') {
+            $app = \App\Models\Appointment::where('appointment_code', $code)->first();
+            if (!$app) {
+                return response()->json(['success' => false, 'message' => 'Lịch hẹn không tồn tại.'], 404);
+            }
+
+            if ($app->commission_status === 'paid') {
+                return response()->json([
+                    'success' => true,
+                    'paid' => true,
+                    'redirect_url' => route('partner.appointments'),
+                ]);
+            }
+
+            $carPrice = (float) ($app->deal_price ?: ($app->product?->price ?: 500000000));
+            $commission1 = round($carPrice * 0.01);
+            $matchedTx = $sepay->checkTransactionFromApi('HH1 ' . $app->appointment_code, $commission1);
+            if (!$matchedTx) {
+                $matchedTx = $sepay->checkTransactionFromApi($app->appointment_code, $commission1);
+            }
+
+            if ($matchedTx) {
+                $refNo = (string) ($matchedTx['id'] ?? ($matchedTx['reference_number'] ?? 'SEPAY_' . time()));
+                $app->update([
+                    'deal_status' => 'deal_won',
+                    'deal_price' => $carPrice,
+                    'commission_amount' => $commission1,
+                    'commission_status' => 'paid',
+                    'commission_proof' => $refNo,
+                    'commission_paid_at' => now(),
+                    'status' => 'completed',
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'paid' => true,
+                    'redirect_url' => route('partner.appointments'),
+                ]);
+            }
+
+            return response()->json(['success' => true, 'paid' => false]);
+        }
+
         return response()->json(['success' => false, 'message' => 'Loại đơn không hợp lệ.'], 400);
     }
 
@@ -204,6 +247,39 @@ class SepayController extends Controller
                 ]);
 
                 return response()->json(['success' => true, 'type' => 'commission_10pct', 'code' => $rentalCode]);
+            }
+        }
+
+        // 1b. Kiểm tra nếu là đối tác nộp 1% hoa hồng bán xe (chứa HH1 và mã lịch hẹn HEN...)
+        if (str_contains($content, 'HH1') && preg_match('/HEN[0-9]{10,18}/', $content, $matches)) {
+            $appCode = $matches[0];
+            $app = \App\Models\Appointment::where('appointment_code', $appCode)->first();
+            if ($app) {
+                $carPrice = (float) ($app->deal_price ?: ($app->product?->price ?: 500000000));
+                $commission1 = round($carPrice * 0.01);
+                $refNo = (string) ($payload['id'] ?? ($payload['reference_number'] ?? 'SEPAY_' . time()));
+
+                $app->update([
+                    'deal_status' => 'deal_won',
+                    'deal_price' => $carPrice,
+                    'commission_amount' => $commission1,
+                    'commission_status' => 'paid',
+                    'commission_proof' => $refNo,
+                    'commission_paid_at' => now(),
+                    'status' => 'completed',
+                ]);
+
+                PaymentTransaction::create([
+                    'gateway' => 'sepay',
+                    'gateway_order_id' => 'COMM1_' . $app->appointment_code,
+                    'transaction_id' => $refNo,
+                    'amount' => $commission1,
+                    'status' => 'paid',
+                    'message' => 'Đối tác đã nộp 1% hoa hồng bán xe qua SePay. Mã GD: ' . $refNo,
+                    'paid_at' => now(),
+                ]);
+
+                return response()->json(['success' => true, 'type' => 'appointment_commission', 'code' => $appCode]);
             }
         }
 

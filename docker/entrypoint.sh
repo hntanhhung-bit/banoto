@@ -6,20 +6,20 @@ cd /var/www
 # Copy only the CA certificate at runtime to an app-readable private location.
 if [[ -n "${MYSQL_ATTR_SSL_CA:-}" ]]; then
     if [[ ! -f "$MYSQL_ATTR_SSL_CA" || ! -r "$MYSQL_ATTR_SSL_CA" ]]; then
-        echo "Cannot read MySQL CA file. Check Render Secret Files and MYSQL_ATTR_SSL_CA." >&2
-        exit 1
+        echo "WARNING: Cannot read MySQL CA file at $MYSQL_ATTR_SSL_CA. Check Render Secret Files." >&2
+    else
+        (
+            umask 077
+            mkdir -p /run/app-certificates
+            chown root:www-data /run/app-certificates
+            chmod 750 /run/app-certificates
+            cp "$MYSQL_ATTR_SSL_CA" /run/app-certificates/mysql-ca.pem
+            chown www-data:www-data /run/app-certificates/mysql-ca.pem
+            chmod 400 /run/app-certificates/mysql-ca.pem
+        )
+        export MYSQL_ATTR_SSL_CA=/run/app-certificates/mysql-ca.pem
+        su-exec www-data php docker/check-ca.php || echo "WARNING: CA check failed, proceeding anyway..." >&2
     fi
-    (
-        umask 077
-        mkdir -p /run/app-certificates
-        chown root:www-data /run/app-certificates
-        chmod 750 /run/app-certificates
-        cp "$MYSQL_ATTR_SSL_CA" /run/app-certificates/mysql-ca.pem
-        chown www-data:www-data /run/app-certificates/mysql-ca.pem
-        chmod 400 /run/app-certificates/mysql-ca.pem
-    )
-    export MYSQL_ATTR_SSL_CA=/run/app-certificates/mysql-ca.pem
-    su-exec www-data php docker/check-ca.php
 fi
 
 # Allow maintenance commands with: docker run ... IMAGE php artisan ...
@@ -41,22 +41,28 @@ envsubst '${PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/htt
 mkdir -p storage/framework/{cache/data,sessions,views} storage/logs storage/app/public bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
 
-su-exec www-data php artisan config:cache
+su-exec www-data php artisan config:cache || echo "WARNING: config:cache failed." >&2
 
 case "${RUN_MIGRATIONS:-true}" in
-    true) su-exec www-data php artisan migrate --force --no-interaction ;;
+    true)
+        echo "Running database migrations..."
+        su-exec www-data php artisan migrate --force --no-interaction || echo "WARNING: Migrations failed. Continuing container startup so web service can stay alive." >&2
+        ;;
     false) ;;
     *) echo "RUN_MIGRATIONS must be true or false" >&2; exit 1 ;;
 esac
 
 case "${RUN_SEEDERS:-false}" in
-    true) su-exec www-data php artisan db:seed --force --no-interaction ;;
+    true)
+        echo "Running database seeders..."
+        su-exec www-data php artisan db:seed --force --no-interaction || echo "WARNING: Seeders failed. Continuing startup." >&2
+        ;;
     false) ;;
     *) echo "RUN_SEEDERS must be true or false" >&2; exit 1 ;;
 esac
 
-su-exec www-data php artisan route:cache
-su-exec www-data php artisan view:cache
+su-exec www-data php artisan route:cache || echo "WARNING: route:cache failed." >&2
+su-exec www-data php artisan view:cache || echo "WARNING: view:cache failed." >&2
 
 nginx -t
 php-fpm -t

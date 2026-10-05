@@ -193,15 +193,61 @@ class PartnerDashboardController extends Controller
     }
 
     // Danh sách xe của đối tác
-    public function cars()
+    public function cars(Request $request)
     {
         $partnerId = $this->getPartnerId();
-        $cars = Product::where('partner_id', $partnerId)
-            ->with('category')
-            ->orderBy('id', 'desc')
-            ->paginate(12);
+        $status = $request->get('rental_status');
+        $approvalStatus = $request->get('approval_status');
 
-        return view('partner.cars', compact('cars'));
+        $baseQuery = Product::where('partner_id', $partnerId);
+        $totalCars = (clone $baseQuery)->count();
+        $countAvailable = (clone $baseQuery)->where(function($q) {
+            $q->where('rental_status', 'available')->orWhereNull('rental_status');
+        })->count();
+        $countRented = (clone $baseQuery)->where('rental_status', 'rented')->count();
+        $countMaintenance = (clone $baseQuery)->where('rental_status', 'maintenance')->count();
+        $countPendingApproval = (clone $baseQuery)->where('approval_status', 'pending')->count();
+
+        $query = Product::where('partner_id', $partnerId)->with('category');
+
+        if ($request->filled('rental_status')) {
+            if ($request->rental_status === 'available') {
+                $query->where(function($q) {
+                    $q->where('rental_status', 'available')->orWhereNull('rental_status');
+                });
+            } else {
+                $query->where('rental_status', $request->rental_status);
+            }
+        }
+        if ($request->filled('approval_status')) {
+            $query->where('approval_status', $request->approval_status);
+        }
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->filled('keyword')) {
+            $kw = $request->keyword;
+            $query->where(function ($q) use ($kw) {
+                $q->where('name', 'like', "%{$kw}%")
+                  ->orWhere('car_plate', 'like', "%{$kw}%")
+                  ->orWhere('color', 'like', "%{$kw}%");
+            });
+        }
+
+        $cars = $query->orderBy('id', 'desc')->paginate(12)->withQueryString();
+        $categories = Category::all();
+
+        return view('partner.cars', compact(
+            'cars',
+            'status',
+            'approvalStatus',
+            'totalCars',
+            'countAvailable',
+            'countRented',
+            'countMaintenance',
+            'countPendingApproval',
+            'categories'
+        ));
     }
 
     // Giao diện thêm xe mới vào Showroom của đối tác
@@ -424,27 +470,112 @@ class PartnerDashboardController extends Controller
         return redirect()->back()->with('success', "Đã cập nhật trạng thái mẫu xe {$product->name}!");
     }
 
+    // Thao tác hàng loạt cập nhật trạng thái nhiều xe cùng lúc
+    public function bulkUpdateCarStatus(Request $request)
+    {
+        $partnerId = $this->getPartnerId();
+        $request->validate([
+            'car_ids' => 'required|array|min:1',
+            'car_ids.*' => 'exists:products,id',
+            'rental_status' => 'required|in:available,rented,maintenance',
+        ], [
+            'car_ids.required' => 'Vui lòng tích chọn ít nhất 1 xe để thực hiện.',
+            'car_ids.min' => 'Vui lòng tích chọn ít nhất 1 xe để thực hiện.',
+            'rental_status.required' => 'Vui lòng chọn tình trạng cần cập nhật.',
+        ]);
+
+        $carIds = $request->input('car_ids', []);
+        $newStatus = $request->input('rental_status');
+
+        $query = Product::whereIn('id', $carIds);
+        if (Auth::user()->role !== 'admin') {
+            $query->where('partner_id', $partnerId);
+        }
+        $updatedCount = $query->update(['rental_status' => $newStatus]);
+
+        $statusLabels = [
+            'available' => 'Sẵn sàng đón khách',
+            'rented' => 'Đang có khách thuê',
+            'maintenance' => 'Tạm ngưng / Bảo dưỡng'
+        ];
+        $label = $statusLabels[$newStatus] ?? $newStatus;
+
+        return redirect()->back()->with('success', "✅ Đã cập nhật thành công {$updatedCount} xe sang tình trạng: '{$label}'!");
+    }
+
     // Quản lý lịch hẹn xem xe
     public function appointments(Request $request)
     {
         $partnerId = $this->getPartnerId();
+        $status = $request->input('status', 'all');
+        $dealStatus = $request->input('deal_status');
+        $keyword = $request->input('keyword');
+
+        $baseQuery = Appointment::where('partner_id', $partnerId);
+        $totalAppointments = (clone $baseQuery)->count();
+        $countPending = (clone $baseQuery)->where('status', 'pending')->count();
+        $countConfirmed = (clone $baseQuery)->where('status', 'confirmed')->count();
+        $countDealWon = (clone $baseQuery)->where('deal_status', 'deal_won')->count();
+        $countLostOrCancelled = (clone $baseQuery)->where(function($q) {
+            $q->where('deal_status', 'deal_lost')->orWhere('status', 'cancelled');
+        })->count();
+
         $query = Appointment::where('partner_id', $partnerId)->with(['product', 'user']);
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
+        }
+        if ($request->filled('deal_status')) {
+            if ($request->deal_status === 'deal_lost') {
+                $query->where(function($q) {
+                    $q->where('deal_status', 'deal_lost')->orWhere('status', 'cancelled');
+                });
+            } else {
+                $query->where('deal_status', $request->deal_status);
+            }
+        }
+        if ($request->filled('keyword')) {
+            $kw = $request->keyword;
+            $query->where(function ($q) use ($kw) {
+                $q->where('appointment_code', 'like', "%{$kw}%")
+                  ->orWhere('customer_name', 'like', "%{$kw}%")
+                  ->orWhere('customer_phone', 'like', "%{$kw}%")
+                  ->orWhereHas('product', function($pq) use ($kw) {
+                      $pq->where('name', 'like', "%{$kw}%");
+                  });
+            });
         }
 
         $appointments = $query->orderBy('id', 'desc')->paginate(15)->withQueryString();
 
-        return view('partner.appointments', compact('appointments'));
+        return view('partner.appointments', compact(
+            'appointments',
+            'status',
+            'dealStatus',
+            'totalAppointments',
+            'countPending',
+            'countConfirmed',
+            'countDealWon',
+            'countLostOrCancelled'
+        ));
     }
 
-    // Cập nhật trạng thái lịch hẹn & kết quả chốt bán xe
+    // Cập nhật trạng thái lịch hẹn & kết quả chốt bán xe (Áp dụng quy tắc khóa trạng thái & nộp hoa hồng)
     public function updateAppointmentStatus(Request $request, Appointment $appointment)
     {
         $partnerId = $this->getPartnerId();
         if ($appointment->partner_id !== $partnerId && Auth::user()->role !== 'admin') {
             abort(403);
+        }
+
+        // QUY TẮC 1: Nếu đã chốt mua xe và nộp 1% hoa hồng thành công -> KHÓA CỨNG, không cho chuyển đổi trạng thái nữa
+        if ($appointment->deal_status === 'deal_won' && $appointment->commission_status === 'paid') {
+            return redirect()->back()->with('error', '⛔ Giao dịch này đã chốt mua xe và nộp 1% hoa hồng Sàn thành công. Trạng thái đã được KHÓA VĨNH VIỄN, không thể chỉnh sửa!');
+        }
+
+        // QUY TẮC 2: Nếu đã hủy mua / khách không mua -> KHÓA CỨNG, không cho chuyển đổi trạng thái nữa
+        if ($appointment->deal_status === 'deal_lost' || $appointment->status === 'cancelled') {
+            return redirect()->back()->with('error', '⛔ Lịch hẹn này đã bị HỦY / Khách không mua. Trạng thái đã được KHÓA VĨNH VIỄN, không thể chuyển đổi trạng thái!');
         }
 
         $request->validate([
@@ -456,30 +587,127 @@ class PartnerDashboardController extends Controller
         ]);
 
         $dealStatus = $request->input('deal_status', $appointment->deal_status ?: 'negotiating');
-        $dealPrice = $request->filled('deal_price') ? (float) $request->deal_price : $appointment->deal_price;
-        $commissionAmount = $appointment->commission_amount;
+        $status = $request->input('status', $appointment->status);
 
-        if ($dealStatus === 'deal_won') {
-            if ($request->filled('commission_amount') && (float) $request->commission_amount > 0) {
-                $commissionAmount = (float) $request->commission_amount;
-            } elseif ($dealPrice > 0) {
-                // 1% hoa hồng môi giới bán xe thành công
-                $commissionAmount = round($dealPrice * 0.01);
-            } else {
-                $basePrice = $appointment->product?->price ?: 500000000;
-                $commissionAmount = round($basePrice * 0.01);
-            }
+        // Trường hợp 1: Chuyển sang Khách không mua / Hủy ý định -> Khóa luôn từ lần lưu này
+        if ($dealStatus === 'deal_lost' || $status === 'cancelled') {
+            $appointment->update([
+                'status' => 'cancelled',
+                'deal_status' => 'deal_lost',
+                'admin_note' => $request->admin_note,
+            ]);
+            return redirect()->back()->with('info', '🔒 Đã ghi nhận Khách không mua / Hủy lịch hẹn. Trạng thái lịch hẹn này đã được khóa lại vĩnh viễn.');
         }
 
+        // Trường hợp 2: Chuyển sang Khách đồng ý mua xe -> Yêu cầu nộp 1% hoa hồng sàn
+        if ($dealStatus === 'deal_won') {
+            $dealPrice = $request->filled('deal_price') && (float)$request->deal_price > 0 
+                ? (float)$request->deal_price 
+                : ($appointment->deal_price ?: ($appointment->product?->price ?: 500000000));
+            
+            // 1% giá trị xe chốt mua
+            $commissionAmount = round($dealPrice * 0.01);
+
+            $appointment->update([
+                'status' => 'confirmed',
+                'deal_status' => 'deal_won',
+                'deal_price' => $dealPrice,
+                'commission_rate' => 1.00,
+                'commission_amount' => $commissionAmount,
+                'commission_status' => 'unpaid',
+                'admin_note' => $request->admin_note,
+            ]);
+
+            return redirect()->back()->with('warning', '⚠️ ĐÃ GHI NHẬN KHÁCH ĐỒNG Ý MUA XE! Nhà xe vui lòng thanh toán đúng 1% hoa hồng Sàn (' . number_format($commissionAmount) . ' VNĐ) qua Cổng VietQR SePay hoặc MoMo bên dưới. Sau khi hoàn tất nộp hoa hồng, hệ thống sẽ chốt và khóa trạng thái.');
+        }
+
+        // Trường hợp 3: Đang đàm phán / tư vấn
         $appointment->update([
-            'status' => $request->status,
+            'status' => $status,
             'deal_status' => $dealStatus,
-            'deal_price' => $dealPrice,
-            'commission_amount' => $commissionAmount,
             'admin_note' => $request->admin_note,
         ]);
 
-        return redirect()->back()->with('success', 'Đã cập nhật tiến độ tư vấn & hoa hồng môi giới giới thiệu mua xe!');
+        return redirect()->back()->with('success', 'Đã cập nhật tiến độ tư vấn lái thử xe!');
+    }
+
+    // Bắt đầu thanh toán 1% hoa hồng môi giới bán xe qua Cổng MoMo Test (Ví MoMo hoặc Thẻ ATM Napas)
+    public function payAppointmentCommissionMomo(Request $request, Appointment $appointment, \App\Services\MomoService $momo)
+    {
+        $partnerId = $this->getPartnerId();
+        if ($appointment->partner_id !== $partnerId && Auth::user()->role !== 'admin') {
+            abort(403, 'Bạn không có quyền thực hiện thanh toán cho lịch hẹn này.');
+        }
+
+        if ($appointment->commission_status === 'paid') {
+            return redirect()->route('partner.appointments')->with('info', 'Lịch hẹn này đã được nộp 1% hoa hồng sàn trước đó.');
+        }
+
+        $carPrice = (float) ($appointment->deal_price ?: ($appointment->product?->price ?: 500000000));
+        $commission1 = (int) ($appointment->commission_amount ?: round($carPrice * 0.01));
+
+        $requestType = $request->query('type', 'captureWallet'); // 'captureWallet' hoặc 'payWithATM'
+        $methodLabel = $requestType === 'payWithATM' ? 'Thẻ ATM nội địa (MoMo Test)' : 'Ví MoMo Test';
+
+        $transaction = PaymentTransaction::create([
+            'gateway' => 'momo',
+            'amount' => $commission1,
+            'status' => 'pending',
+            'message' => "Nộp 1% hoa hồng sàn bán xe #{$appointment->appointment_code} qua {$methodLabel}",
+        ]);
+
+        $result = $momo->createAppointmentCommissionPayment($appointment, $transaction, $requestType);
+
+        if (isset($result['payUrl']) && !empty($result['payUrl'])) {
+            return redirect($result['payUrl']);
+        }
+
+        return redirect()->route('partner.appointments')->with('error', 'Không thể kết nối tới cổng MoMo Test: ' . ($result['message'] ?? 'Vui lòng thử lại sau.'));
+    }
+
+    // Xác nhận nộp 1% hoa hồng sàn bằng chuyển khoản ngân hàng (SePay / TPBank)
+    public function confirmAppointmentCommission(Request $request, Appointment $appointment)
+    {
+        $partnerId = $this->getPartnerId();
+        if ($appointment->partner_id !== $partnerId && Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        if ($appointment->commission_status === 'paid') {
+            return redirect()->route('partner.appointments')->with('info', 'Lịch hẹn này đã được ghi nhận thanh toán hoa hồng.');
+        }
+
+        $request->validate([
+            'payment_proof' => 'required|string|max:255',
+        ], [
+            'payment_proof.required' => 'Vui lòng nhập mã giao dịch ngân hàng hoặc nội dung chuyển khoản để đối chiếu.',
+        ]);
+
+        $carPrice = (float) ($appointment->deal_price ?: ($appointment->product?->price ?: 500000000));
+        $commission1 = (int) ($appointment->commission_amount ?: round($carPrice * 0.01));
+        $proof = trim($request->input('payment_proof'));
+
+        $appointment->update([
+            'deal_status' => 'deal_won',
+            'deal_price' => $carPrice,
+            'commission_amount' => $commission1,
+            'commission_status' => 'paid',
+            'commission_proof' => $proof,
+            'commission_paid_at' => now(),
+            'status' => 'completed',
+        ]);
+
+        PaymentTransaction::create([
+            'gateway' => 'sepay',
+            'gateway_order_id' => 'COMM1_' . $appointment->appointment_code,
+            'transaction_id' => $proof,
+            'amount' => $commission1,
+            'status' => 'paid',
+            'message' => 'Đối tác đã xác nhận nộp 1% hoa hồng bán xe qua Ngân hàng. Mã GD: ' . $proof,
+            'paid_at' => now(),
+        ]);
+
+        return redirect()->route('partner.appointments')->with('success', "✅ Đã xác nhận nộp 1% hoa hồng Sàn (" . number_format($commission1) . " đ) thành công! Giao dịch đã hoàn tất và khóa trạng thái.");
     }
 
     // Quản lý đơn thuê xe

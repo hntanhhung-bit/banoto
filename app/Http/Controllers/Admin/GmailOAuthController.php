@@ -24,13 +24,16 @@ class GmailOAuthController extends Controller
 
         $redirectUri = route('admin.gmail.callback');
 
+        $matBaoSmtp = \App\Services\EmailConfigService::getCustomSmtp();
+
         return view('admin.gmail.index', compact(
             'clientId',
             'clientSecret',
             'refreshToken',
             'connectedEmail',
             'isConnected',
-            'redirectUri'
+            'redirectUri',
+            'matBaoSmtp'
         ));
     }
 
@@ -184,5 +187,44 @@ class GmailOAuthController extends Controller
             Cache::forget('gmail_api_credentials');
         } catch (\Throwable $e) {}
         return redirect()->route('admin.gmail.index')->with('success', 'Đã ngắt kết nối Gmail API thành công.');
+    }
+
+    public function saveSmtp(Request $request)
+    {
+        $request->validate([
+            'host' => 'required|string',
+            'port' => 'required|numeric',
+            'username' => 'required|string',
+            'password' => 'required|string',
+        ], [
+            'host.required' => 'Vui lòng nhập máy chủ SMTP (ví dụ: s129d209.emailserver.vn).',
+            'port.required' => 'Vui lòng nhập cổng SMTP (ví dụ: 465 hoặc 587).',
+            'username.required' => 'Vui lòng nhập email đăng nhập (ví dụ: cskh@thueotovn.id.vn).',
+            'password.required' => 'Vui lòng nhập mật khẩu hòm thư.',
+        ]);
+
+        $data = $request->only(['host', 'port', 'username', 'password', 'encryption', 'from_address', 'from_name']);
+        $data['is_enabled'] = $request->has('is_enabled');
+
+        \App\Services\EmailConfigService::saveCustomSmtp($data);
+
+        return redirect()->route('admin.gmail.index')->with('success', 'Đã lưu cấu hình Email Mắt Bão (thueotovn.id.vn) thành công!');
+    }
+
+    public function sendTestSmtp(Request $request)
+    {
+        $request->validate([
+            'test_email' => 'required|email',
+        ], [
+            'test_email.required' => 'Vui lòng nhập email người nhận thử nghiệm.',
+            'test_email.email' => 'Email người nhận không hợp lệ.',
+        ]);
+
+        try {
+            \App\Services\EmailConfigService::sendTestEmail($request->test_email);
+            return back()->with('success', "Đã gửi email thử nghiệm thành công tới {$request->test_email} qua máy chủ Mắt Bão! Vui lòng kiểm tra hộp thư đến (hoặc Spam).");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gửi email qua Mắt Bão thất bại: ' . $e->getMessage());
+        }
     }
 }

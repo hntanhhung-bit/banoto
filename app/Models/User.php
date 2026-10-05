@@ -69,7 +69,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function generateVerificationOtp(bool $sendEmail = true): string
     {
         $otp = sprintf('%06d', mt_rand(100000, 999999));
-        
+
         // Lưu vào Session và Cache để luôn hoạt động kể cả khi chưa chạy migration
         session([
             'email_verification_otp_' . $this->id => $otp,
@@ -102,42 +102,94 @@ class User extends Authenticatable implements MustVerifyEmail
         $otp = $otp ?: $this->getActiveOtp();
         $user = $this;
 
+        // 1. Thử gửi qua Mắt Bão / Custom SMTP nếu được cấu hình
+        try {
+            $smtp = \App\Services\EmailConfigService::getCustomSmtp();
+            if (!empty($smtp['is_enabled']) && !empty($smtp['host']) && !empty($smtp['username']) && !empty($smtp['password'])) {
+                try {
+                    config([
+                        'mail.mailers.custom_smtp_runner' => [
+                            'transport' => 'smtp',
+                            'host' => $smtp['host'],
+                            'port' => $smtp['port'],
+                            'encryption' => $smtp['encryption'],
+                            'username' => $smtp['username'],
+                            'password' => $smtp['password'],
+                            'timeout' => 5, // 5s timeout để không bị treo nếu cổng bị chặn
+                        ]
+                    ]);
+
+                    $fromAddress = !empty($smtp['from_address']) ? $smtp['from_address'] : $smtp['username'];
+                    $fromName = !empty($smtp['from_name']) ? $smtp['from_name'] : 'Auto Car Vietnam';
+
+                    \Illuminate\Support\Facades\Mail::mailer('custom_smtp_runner')->send([], [], function ($message) use ($user, $otp, $fromAddress, $fromName) {
+                        $html = view('emails.verify-otp', [
+                            'userName' => $user->name,
+                            'otp' => $otp,
+                            'email' => $user->email,
+                        ])->render();
+
+                        $message->to($user->email, $user->name)
+                            ->from($fromAddress, $fromName)
+                            ->subject("🔑 [Auto Car] Mã xác thực OTP của bạn: {$otp}")
+                            ->html($html);
+                    });
+
+                    \Illuminate\Support\Facades\Log::info("OTP email sent successfully via Mắt Bão SMTP to {$user->email}");
+                    return true;
+                } catch (\Throwable $smtpEx) {
+                    \Illuminate\Support\Facades\Log::warning("Mắt Bão SMTP failed: " . $smtpEx->getMessage() . ", falling back to Gmail API...");
+                }
+            }
+        } catch (\Throwable $e) {
+            // bỏ qua
+        }
+
+        // 2. Thử gửi qua Google Gmail API (Port 443 HTTPS - Hoạt động trên mọi hosting kể cả Render)
         try {
             $savedGmail = \App\Mail\Transports\GmailApiTransport::getSavedCredentials();
             $hasGmailApi = !empty($savedGmail['refresh_token']) || !empty(env('GMAIL_REFRESH_TOKEN'));
-            $fromAddress = $savedGmail['connected_email'] ?? env('MAIL_FROM_ADDRESS', 'hntanhhung@gmail.com');
-            $fromName = env('MAIL_FROM_NAME', 'Auto Car Vietnam');
-
-            $data = [
-                'userName' => $user->name,
-                'otp' => $otp,
-                'email' => $user->email,
-            ];
-
-            $plainText = "Xin chào {$user->name},\n\nMã xác thực OTP để kích hoạt tài khoản của bạn tại Auto Car là: {$otp}\n\nMã có hiệu lực trong vòng 15 phút. Vui lòng nhập mã này vào trang xác thực để hoàn tất kích hoạt.\n\nTrân trọng,\nAuto Car Vietnam";
 
             if ($hasGmailApi) {
                 try {
-                    \Illuminate\Support\Facades\Mail::mailer('gmail')->send('emails.verify-otp', $data, function ($message) use ($user, $otp, $fromAddress, $fromName, $plainText) {
+                    $fromAddress = $savedGmail['connected_email'] ?? env('MAIL_FROM_ADDRESS', 'hntanhhung@gmail.com');
+                    $fromName = env('MAIL_FROM_NAME', 'Auto Car Vietnam');
+
+                    \Illuminate\Support\Facades\Mail::mailer('gmail')->send([], [], function ($message) use ($user, $otp, $fromAddress, $fromName) {
+                        $html = view('emails.verify-otp', [
+                            'userName' => $user->name,
+                            'otp' => $otp,
+                            'email' => $user->email,
+                        ])->render();
+
                         $message->to($user->email, $user->name)
-                                ->from($fromAddress, $fromName)
-                                ->subject("🔑 [Auto Car] Mã xác thực OTP của bạn: {$otp}")
-                                ->text($plainText);
+                            ->from($fromAddress, $fromName)
+                            ->subject("🔑 [Auto Car] Mã xác thực OTP của bạn: {$otp}")
+                            ->html($html);
                     });
 
                     \Illuminate\Support\Facades\Log::info("OTP email sent successfully via Gmail API to {$user->email}");
                     return true;
                 } catch (\Throwable $gmailEx) {
-                    \Illuminate\Support\Facades\Log::error("Gmail API sending failed: " . $gmailEx->getMessage());
+                    \Illuminate\Support\Facades\Log::warning("Gmail API sending failed, falling back to default mailer: " . $gmailEx->getMessage());
                 }
             }
 
-            // Fallback gửi qua Mailer mặc định (Mailtrap / Resend / Brevo)
-            \Illuminate\Support\Facades\Mail::send('emails.verify-otp', $data, function ($message) use ($user, $otp, $fromAddress, $fromName, $plainText) {
+            // 3. Fallback gửi qua Mailer mặc định (Mailtrap / Resend / Brevo)
+            \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($user, $otp) {
+                $html = view('emails.verify-otp', [
+                    'userName' => $user->name,
+                    'otp' => $otp,
+                    'email' => $user->email,
+                ])->render();
+
+                $fromAddress = env('MAIL_FROM_ADDRESS', 'noreply@banoto.com');
+                $fromName = env('MAIL_FROM_NAME', 'Auto Car Vietnam');
+
                 $message->to($user->email, $user->name)
-                        ->from($fromAddress, $fromName)
-                        ->subject("🔑 [Auto Car] Mã xác thực OTP của bạn: {$otp}")
-                        ->text($plainText);
+                    ->from($fromAddress, $fromName)
+                    ->subject("🔑 [Auto Car] Mã xác thực OTP của bạn: {$otp}")
+                    ->html($html);
             });
 
             \Illuminate\Support\Facades\Log::info("OTP email sent successfully via default mailer to {$user->email}");
@@ -146,14 +198,6 @@ class User extends Authenticatable implements MustVerifyEmail
             \Illuminate\Support\Facades\Log::error("Failed to send OTP email to {$user->email}: " . $e->getMessage());
             return false;
         }
-    }
-
-    /**
-     * Gửi lại thông báo xác thực email (Override phương thức mặc định của Laravel)
-     */
-    public function sendEmailVerificationNotification(): void
-    {
-        $this->generateVerificationOtp(true);
     }
 
     /**

@@ -112,7 +112,7 @@ class RentalController extends Controller
     public function confirmDeposit(Request $request, Rental $rental)
     {
         if (in_array($rental->payment_status, ['deposit_paid', 'fully_paid'])) {
-            return redirect()->back()->with('warning', 'Đơn thuê xe này đã được xác nhận đã nhận cọc trước đó.');
+            return redirect()->back()->with('warning', 'Đơn thuê xe này đã được xác nhận ở trạng thái ĐÃ NHẬN ĐƯỢC CỌC trước đó.');
         }
 
         $handoverCode = $rental->handover_code ?: (string) rand(100000, 999999);
@@ -120,6 +120,7 @@ class RentalController extends Controller
         $rental->update([
             'payment_status' => 'deposit_paid',
             'handover_code' => $handoverCode,
+            'rental_status' => ($rental->rental_status === 'pending' ? 'confirmed' : $rental->rental_status),
         ]);
 
         PaymentTransaction::create([
@@ -128,16 +129,22 @@ class RentalController extends Controller
             'gateway_order_id' => 'ADMIN_CONFIRM_' . $rental->rental_code . '_' . time(),
             'amount' => $rental->deposit_amount,
             'status' => 'paid',
-            'message' => 'Admin xác nhận đã nhận tiền cọc ' . number_format($rental->deposit_amount) . 'đ thành công (tránh trường hợp thanh toán trễ khách mất quyền nhận xe). Đã kích hoạt mã OTP đối chiếu: ' . $handoverCode,
+            'message' => 'Admin xác nhận: ĐÃ NHẬN ĐƯỢC CỌC ' . number_format($rental->deposit_amount) . 'đ thành công. Đã kích hoạt mã OTP đối chiếu nhận xe: ' . $handoverCode,
             'paid_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', "✅ Đã xác nhận nhận cọc thành công cho đơn #{$rental->rental_code}! Mã đối chiếu nhận xe cấp cho khách là: {$handoverCode}");
+        return redirect()->back()->with('success', "✅ ĐÃ GHI NHẬN TRẠNG THÁI: ĐÃ NHẬN ĐƯỢC CỌC cho đơn thuê xe #{$rental->rental_code}! Số tiền: " . number_format($rental->deposit_amount) . " VNĐ. Mã OTP nhận xe cấp cho khách: {$handoverCode}");
     }
 
     // Xử lý Hoàn cọc Ký quỹ cho khách hàng (Admin Escrow Refund)
     public function refund(Request $request, Rental $rental)
     {
+        // QUY TẮC BẮT BUỘC: Chỉ xác nhận hoàn cọc khi đối tác (partner) đã thanh toán 10% phí hoa hồng sàn
+        if ($rental->partner_id && $rental->partner_commission_status !== 'paid') {
+            $fee = (int) ($rental->partner_commission_fee ?: round(($rental->total_rental_fee + $rental->total_driver_fee) * 0.10));
+            return redirect()->back()->with('error', "⛔ KHÔNG THỂ HOÀN CỌC: Đối tác Showroom / Nhà xe chưa thanh toán 10% phí hoa hồng Sàn (" . number_format($fee) . " VNĐ) cho đơn #{$rental->rental_code}! Hệ thống chỉ cho phép hoàn cọc ký quỹ cho khách sau khi Đối tác đã thanh toán xong phí hoa hồng sàn.");
+        }
+
         $request->validate([
             'refund_amount' => 'required|numeric|min:0',
             'refund_holding_fee' => 'nullable|numeric|min:0',

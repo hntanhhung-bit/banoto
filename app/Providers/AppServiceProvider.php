@@ -37,21 +37,5 @@ class AppServiceProvider extends ServiceProvider
                 $config['refresh_token'] ?? env('GMAIL_REFRESH_TOKEN')
             );
         });
-
-        // Tự động chuyển mailer mặc định sang gmail khi đã kết nối Google Gmail API
-        try {
-            $saved = \App\Mail\Transports\GmailApiTransport::getSavedCredentials();
-            if (!empty($saved['refresh_token']) || env('GMAIL_REFRESH_TOKEN')) {
-                config(['mail.default' => 'gmail']);
-                if (!empty($saved['connected_email'])) {
-                    config([
-                        'mail.from.address' => $saved['connected_email'],
-                        'mail.from.name' => env('MAIL_FROM_NAME', 'Auto Car Vietnam'),
-                    ]);
-                }
-            }
-        } catch (\Throwable $e) {
-            // Không làm gián đoạn ứng dụng
-        }
     }
 }
