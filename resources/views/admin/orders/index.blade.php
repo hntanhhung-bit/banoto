@@ -75,54 +75,58 @@
             </div>
         </div>
 
-        <!-- FORM THAO TÁC HÀNG LOẠT (BULK ACTIONS) -->
-        <form id="bulkOrderForm" action="{{ route('admin.orders.bulkStatus') }}" method="POST">
-            @csrf
-            <!-- THANH CÔNG CỤ THAO TÁC HÀNG LOẠT -->
-            <div class="card border-0 shadow-sm mb-3 bg-white" style="border-radius: 10px;">
-                <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between flex-wrap">
-                    <div class="d-flex align-items-center flex-wrap mb-2 mb-md-0">
-                        <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark mr-3"
-                            style="font-size: 13px;">
-                            <i class="fa fa-check-square text-primary mr-1"></i> Đã chọn:
-                            <span id="selectedOrderCount" class="text-danger font-weight-bold">0</span> đơn hàng
-                        </span>
+        <!-- THANH CÔNG CỤ THAO TÁC HÀNG LOẠT -->
+        <div class="card border-0 shadow-sm mb-3 bg-white" style="border-radius: 10px;">
+            <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between flex-wrap">
+                <div class="d-flex align-items-center flex-wrap mb-2 mb-md-0">
+                    <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark mr-3"
+                        style="font-size: 13px;">
+                        <i class="fa fa-check-square text-primary mr-1"></i> Đã chọn:
+                        <span id="selectedOrderCount" class="text-danger font-weight-bold">0</span> đơn hàng
+                    </span>
 
-                        <div class="d-flex align-items-center mr-2 mb-1 mb-md-0">
-                            <span class="small font-weight-bold text-muted mr-1">Trạng thái đơn:</span>
-                            <select name="order_status" id="bulkOrderStatus" class="custom-select custom-select-sm"
-                                style="min-width: 140px;">
-                                <option value="">-- Giữ nguyên --</option>
-                                <option value="pending">⏳ Chờ xử lý</option>
-                                <option value="confirmed">✓ Đã xác nhận</option>
-                                <option value="shipping">🚗 Đang giao xe</option>
-                                <option value="completed">★ Hoàn tất</option>
-                                <option value="cancelled">✕ Đã hủy</option>
-                            </select>
-                        </div>
-
-                        <div class="d-flex align-items-center mr-2 mb-1 mb-md-0">
-                            <span class="small font-weight-bold text-muted mr-1">Thanh toán:</span>
-                            <select name="payment_status" id="bulkOrderPayment" class="custom-select custom-select-sm"
-                                style="min-width: 140px;">
-                                <option value="">-- Giữ nguyên --</option>
-                                <option value="paid">✅ Đã thanh toán</option>
-                                <option value="unpaid">⌛ Chưa thanh toán</option>
-                            </select>
-                        </div>
-
-                        <button type="submit" id="btnBulkOrderSubmit"
-                            class="btn btn-sm btn-primary font-weight-bold shadow-sm" disabled
-                            onclick="return confirm('Bạn có chắc muốn cập nhật trạng thái cho các đơn hàng đã chọn?');">
-                            <i class="fa fa-refresh mr-1"></i> Cập nhật hàng loạt
-                        </button>
+                    <div class="d-flex align-items-center mr-2 mb-1 mb-md-0">
+                        <span class="small font-weight-bold text-muted mr-1">Trạng thái đơn:</span>
+                        <select id="bulkOrderStatus" class="custom-select custom-select-sm"
+                            style="min-width: 140px;">
+                            <option value="">-- Giữ nguyên --</option>
+                            <option value="pending">⏳ Chờ xử lý</option>
+                            <option value="confirmed">✓ Đã xác nhận</option>
+                            <option value="shipping">🚗 Đang giao xe</option>
+                            <option value="completed">★ Hoàn tất</option>
+                            <option value="cancelled">✕ Đã hủy</option>
+                        </select>
                     </div>
 
-                    <div class="small text-muted">
-                        <i class="fa fa-info-circle text-info"></i> Tích chọn các ô để thay đổi trạng thái cùng lúc
+                    <div class="d-flex align-items-center mr-2 mb-1 mb-md-0">
+                        <span class="small font-weight-bold text-muted mr-1">Thanh toán:</span>
+                        <select id="bulkOrderPayment" class="custom-select custom-select-sm"
+                            style="min-width: 140px;">
+                            <option value="">-- Giữ nguyên --</option>
+                            <option value="paid">✅ Đã thanh toán</option>
+                            <option value="unpaid">⌛ Chưa thanh toán</option>
+                        </select>
                     </div>
+
+                    <button type="button" id="btnBulkOrderSubmit"
+                        class="btn btn-sm btn-primary font-weight-bold shadow-sm" disabled>
+                        <i class="fa fa-refresh mr-1"></i> Cập nhật hàng loạt
+                    </button>
+                </div>
+
+                <div class="small text-muted">
+                    <i class="fa fa-info-circle text-info"></i> Tích chọn các ô để thay đổi trạng thái cùng lúc
                 </div>
             </div>
+        </div>
+
+        <!-- FORM ẨN ĐỂ SUBMIT BULK ACTIONS (TRÁNH LỒNG FORM) -->
+        <form id="bulkOrderForm" action="{{ route('admin.orders.bulkStatus') }}" method="POST" style="display: none;">
+            @csrf
+            <input type="hidden" name="order_status" id="hidden_bulk_order_status">
+            <input type="hidden" name="payment_status" id="hidden_bulk_payment_status">
+            <div id="hidden_bulk_order_ids"></div>
+        </form>
 
             <!-- BẢNG DANH SÁCH ĐƠN HÀNG -->
             <div class="card shadow-sm border-0" style="border-radius: 10px; overflow: hidden;">
@@ -289,7 +293,6 @@
                     </div>
                 @endif
             </div>
-        </form>
     </div>
 
     <script>
@@ -330,6 +333,37 @@
 
             if (selectStatus) selectStatus.addEventListener('change', updateState);
             if (selectPayment) selectPayment.addEventListener('change', updateState);
+
+            if (btnSubmit) {
+                btnSubmit.addEventListener('click', function () {
+                    const checked = document.querySelectorAll('.order-checkbox:checked');
+                    if (checked.length === 0) {
+                        alert('Vui lòng chọn ít nhất một đơn hàng!');
+                        return;
+                    }
+                    if (!confirm('Bạn có chắc muốn cập nhật trạng thái cho các đơn hàng đã chọn?')) {
+                        return;
+                    }
+
+                    const hiddenStatus = document.getElementById('hidden_bulk_order_status');
+                    const hiddenPayment = document.getElementById('hidden_bulk_payment_status');
+                    const hiddenContainer = document.getElementById('hidden_bulk_order_ids');
+
+                    hiddenStatus.value = selectStatus.value;
+                    hiddenPayment.value = selectPayment.value;
+                    hiddenContainer.innerHTML = '';
+
+                    checked.forEach(cb => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'order_ids[]';
+                        input.value = cb.value;
+                        hiddenContainer.appendChild(input);
+                    });
+
+                    document.getElementById('bulkOrderForm').submit();
+                });
+            }
         });
     </script>
 @endsection
