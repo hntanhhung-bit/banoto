@@ -78,13 +78,8 @@
         </div>
     </div>
 
-    <!-- FORM THAO TÁC HÀNG LOẠT (BULK ACTIONS) -->
-    <form id="bulkProductForm" action="{{ route('admin.products.bulkApproval') }}" method="POST">
-        @csrf
-        <input type="hidden" name="action" id="bulkProductAction" value="approve">
-
-        <!-- THANH CÔNG CỤ THAO TÁC HÀNG LOẠT -->
-        <div class="card border-0 shadow-sm mb-3 bg-white" style="border-radius: 10px;">
+    <!-- THANH CÔNG CỤ THAO TÁC HÀNG LOẠT -->
+    <div class="card border-0 shadow-sm mb-3 bg-white" style="border-radius: 10px;">
             <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between flex-wrap">
                 <div class="d-flex align-items-center flex-wrap mb-2 mb-md-0">
                     <span class="badge badge-light border px-2 py-1 font-weight-bold text-dark mr-3" style="font-size: 13px;">
@@ -399,7 +394,14 @@
             </div>
         </div>
     </div>
-</form>
+
+    <!-- FORM ẨN ĐỂ SUBMIT BULK ACTION (TRÁNH LỖI NESTED FORM TRONG TABLE) -->
+    <form id="bulkProductForm" action="{{ route('admin.products.bulkApproval') }}" method="POST" style="display: none;">
+        @csrf
+        <input type="hidden" name="action" id="bulkProductAction" value="approve">
+        <input type="hidden" name="reason" id="bulkProductReason" value="">
+        <div id="hiddenProductIdsContainer"></div>
+    </form>
 </div>
 
 <script>
@@ -453,7 +455,18 @@ function submitBulkProduct(action) {
             alert('Vui lòng nhập lý do từ chối kiểm định xe!');
             return;
         }
+        document.getElementById('bulkProductReason').value = reasonInput.value.trim();
     }
+
+    const container = document.getElementById('hiddenProductIdsContainer');
+    container.innerHTML = '';
+    checked.forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'product_ids[]';
+        input.value = cb.value;
+        container.appendChild(input);
+    });
 
     document.getElementById('bulkProductAction').value = action;
     document.getElementById('bulkProductForm').submit();

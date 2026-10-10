@@ -358,6 +358,20 @@
                 </button>
             </div>
         @endif
+
+        @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <i class="fa fa-exclamation-triangle mr-1"></i> <strong>Có lỗi xảy ra:</strong>
+                <ul class="mb-0 mt-1 small">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        @endif
     </div>
 
     <!-- KHU VỰC NỘI DUNG CHÍNH -->
