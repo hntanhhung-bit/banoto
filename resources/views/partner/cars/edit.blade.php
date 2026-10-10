@@ -74,41 +74,33 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
-                                <label class="font-weight-bold small text-danger">Biển số xe (BKS) <span class="text-danger">*</span>:</label>
-                                <input type="text" name="car_plate" class="form-control font-weight-bold @error('car_plate') is-invalid @enderror" 
-                                       placeholder="VD: 30K-888.88" value="{{ old('car_plate', $product->car_plate) }}" required>
-                                @error('car_plate')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                 <label class="font-weight-bold small text-danger">Biển số xe (BKS) <span class="text-danger">*</span>:</label>
+                                 <input type="text" name="car_plate" class="form-control font-weight-bold @error('car_plate') is-invalid @enderror" 
+                                        placeholder="VD: 30K-888.88" value="{{ old('car_plate', $product->car_plate) }}" required>
+                                 @error('car_plate')
+                                     <div class="invalid-feedback">{{ $message }}</div>
+                                 @enderror
                             </div>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
-                                <label class="font-weight-bold small">Năm SX / Đời xe <span class="text-danger">*</span>:</label>
-                                <input type="number" name="car_year" class="form-control @error('car_year') is-invalid @enderror" 
-                                       placeholder="VD: 2023" value="{{ old('car_year', $product->car_year ?: date('Y')) }}" min="2000" max="{{ date('Y') + 1 }}" required>
-                                @error('car_year')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                 <label class="font-weight-bold small">Năm SX / Đời xe <span class="text-danger">*</span>:</label>
+                                 <input type="number" name="car_year" class="form-control @error('car_year') is-invalid @enderror" 
+                                        placeholder="VD: 2023" value="{{ old('car_year', $product->car_year ?: date('Y')) }}" min="2000" max="{{ date('Y') + 1 }}" required>
+                                 @error('car_year')
+                                     <div class="invalid-feedback">{{ $message }}</div>
+                                 @enderror
                             </div>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
-                                <label class="font-weight-bold small">Màu sắc chủ đạo:</label>
-                                <input type="text" name="color" class="form-control" 
-                                       value="{{ old('color', $product->color ?: 'Trắng ngọc trai') }}">
-                            </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label class="font-weight-bold small">Số lượng xe có sẵn:</label>
-                                <input type="number" name="quantity" class="form-control" 
-                                       value="{{ old('quantity', $product->quantity ?: 1) }}" min="1">
+                                 <label class="font-weight-bold small">Màu sắc chủ đạo:</label>
+                                 <input type="text" name="color" class="form-control" 
+                                        value="{{ old('color', $product->color ?: 'Trắng ngọc trai') }}">
                             </div>
                         </div>
                     </div>

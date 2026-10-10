@@ -274,7 +274,6 @@ class PartnerDashboardController extends Controller
             'rental_deposit' => 'required|numeric|min:0',
             'driver_price_per_day' => 'nullable|numeric|min:0',
             'price' => 'nullable|numeric|min:0',
-            'quantity' => 'nullable|integer|min:1',
             'color' => 'nullable|string|max:255',
             'rental_status' => 'nullable|in:available,maintenance',
             'description' => 'nullable|string',
@@ -329,7 +328,7 @@ class PartnerDashboardController extends Controller
             'driver_price_per_day' => $driverPrice,
             'rental_deposit' => $deposit,
             'rental_status' => $request->rental_status ?: 'available',
-            'quantity' => (int) ($request->quantity ?: 1),
+            'quantity' => 1, // Mỗi lần thêm là 1 chiếc xe cụ thể
             'color' => $request->color ?: 'Trắng ngọc trai',
             'description' => $request->description,
             'image' => $imageName,
@@ -350,7 +349,7 @@ class PartnerDashboardController extends Controller
             'color_hex' => '#FFFFFF',
             'extra_rent_price' => 0,
             'rent_price_per_day' => $rentPrice,
-            'quantity' => (int) ($product->quantity ?: 1),
+            'quantity' => 1,
             'is_default' => 1,
         ]);
 
@@ -387,7 +386,6 @@ class PartnerDashboardController extends Controller
             'rental_deposit' => 'required|numeric|min:0',
             'driver_price_per_day' => 'nullable|numeric|min:0',
             'price' => 'nullable|numeric|min:0',
-            'quantity' => 'nullable|integer|min:1',
             'color' => 'nullable|string|max:255',
             'rental_status' => 'required|in:available,rented,maintenance',
             'description' => 'nullable|string',
@@ -413,7 +411,7 @@ class PartnerDashboardController extends Controller
             'driver_price_per_day' => (float) ($request->driver_price_per_day ?: 0),
             'rental_deposit' => (float) $request->rental_deposit,
             'rental_status' => $request->rental_status,
-            'quantity' => (int) ($request->quantity ?: 1),
+            'quantity' => 1,
             'color' => $request->color ?: 'Trắng ngọc trai',
             'description' => $request->description,
         ];

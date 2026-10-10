@@ -68,7 +68,8 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Category::all();
-        return view('admin.products.create', compact('categories'));
+        $partners = \App\Models\User::where('role', 'partner')->get();
+        return view('admin.products.create', compact('categories', 'partners'));
     }
 
     // Xử lý lưu xe mới
@@ -76,137 +77,101 @@ class ProductController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'price' => 'nullable|integer|min:0',
-            'rent_price_per_day' => 'nullable|integer|min:0',
-            'driver_price_per_day' => 'nullable|integer|min:0',
-            'rental_deposit' => 'nullable|integer|min:0',
-            'quantity' => 'nullable|integer|min:0',
             'category_id' => 'required|exists:categories,id',
+            'car_plate' => 'required|string|max:50',
+            'car_year' => 'required|integer|min:2000|max:' . (date('Y') + 1),
+            'car_condition' => 'required|string|max:1000',
+            'rent_price_per_day' => 'required|numeric|min:0',
+            'rental_deposit' => 'required|numeric|min:0',
+            'driver_price_per_day' => 'nullable|numeric|min:0',
+            'price' => 'nullable|numeric|min:0',
             'color' => 'nullable|string|max:255',
-            'rental_status' => 'nullable|string|in:available,rented,maintenance,sold',
+            'rental_status' => 'nullable|in:available,rented,maintenance,sold',
+            'partner_id' => 'nullable|exists:users,id',
             'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'colors.*.extra_rent_price' => 'nullable|integer|min:0',
-            'colors.*.rent_price_per_day' => 'nullable|integer|min:0',
-            'colors.*.quantity' => 'nullable|integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ], [
             'name.required' => 'Vui lòng nhập tên mẫu xe.',
             'category_id.required' => 'Vui lòng chọn hãng xe (danh mục).',
-            'price.integer' => 'Giá bán xe phải là số nguyên (không được chứa chữ cái hoặc số thập phân).',
-            'price.min' => 'Giá bán xe không được là số âm (phải từ 0 trở lên).',
-            'rent_price_per_day.integer' => 'Giá thuê tự lái cơ bản phải là số nguyên.',
-            'rent_price_per_day.min' => 'Giá thuê tự lái không được là số âm (phải từ 0 trở lên).',
-            'driver_price_per_day.integer' => 'Phí tài xế riêng phải là số nguyên.',
-            'driver_price_per_day.min' => 'Phí tài xế riêng không được là số âm (phải từ 0 trở lên).',
-            'rental_deposit.integer' => 'Tiền cọc giữ xe phải là số nguyên.',
-            'rental_deposit.min' => 'Tiền cọc giữ xe không được là số âm (phải từ 0 trở lên).',
-            'quantity.integer' => 'Số lượng xe phải là số nguyên.',
-            'quantity.min' => 'Số lượng xe không được là số âm.',
-            'colors.*.extra_rent_price.integer' => 'Phụ phí màu phải là số nguyên.',
-            'colors.*.extra_rent_price.min' => 'Phụ phí màu không được là số âm.',
-            'colors.*.rent_price_per_day.integer' => 'Tổng giá thuê theo màu phải là số nguyên.',
-            'colors.*.rent_price_per_day.min' => 'Tổng giá thuê theo màu không được là số âm.',
-            'colors.*.quantity.integer' => 'Số lượng xe theo màu phải là số nguyên.',
-            'colors.*.quantity.min' => 'Số lượng xe theo màu không được là số âm.',
+            'car_plate.required' => 'Vui lòng nhập Biển số xe (BKS).',
+            'car_year.required' => 'Vui lòng nhập Năm sản xuất / Đời xe.',
+            'car_condition.required' => 'Vui lòng nhập Tình trạng kỹ thuật, Đăng kiểm & Bảo hiểm của xe.',
+            'rent_price_per_day.required' => 'Vui lòng nhập giá thuê xe tự lái theo ngày.',
+            'rental_deposit.required' => 'Vui lòng nhập số tiền cọc thế chân giữ xe.',
         ]);
 
-        $data = $request->all();
-        $data['price'] = $request->filled('price') ? (int) $request->price : (int) ($request->rent_price_per_day ?: 0);
-        $data['rent_price_per_day'] = $request->filled('rent_price_per_day') ? (int) $request->rent_price_per_day : 0;
-        $data['driver_price_per_day'] = $request->filled('driver_price_per_day') ? (int) $request->driver_price_per_day : 0;
-        $data['rental_deposit'] = $request->filled('rental_deposit') ? (int) $request->rental_deposit : 0;
-        $data['quantity'] = $request->filled('quantity') ? (int) $request->quantity : 10;
-
-        // Xử lý upload ảnh đại diện chính
+        $imageName = null;
         if ($request->hasFile('image')) {
-            $imageName = time().'.'.$request->image->extension();  
+            $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
             $request->image->move(public_path('images'), $imageName);
-            $data['image'] = $imageName;
+            if (is_dir(public_path('storage'))) {
+                @copy(public_path('images/' . $imageName), public_path('storage/' . $imageName));
+            }
         }
 
-        // Xử lý upload nhiều ảnh gallery
+        // Xử lý upload danh sách nhiều ảnh chi tiết
+        $galleryImages = [];
         if ($request->hasFile('gallery_images')) {
-            $galleryNames = [];
             foreach ($request->file('gallery_images') as $file) {
                 $gName = time() . '_' . uniqid() . '.' . $file->extension();
                 $file->move(public_path('images'), $gName);
-                $galleryNames[] = $gName;
-            }
-            $data['gallery_images'] = json_encode($galleryNames);
-        }
-
-        $product = Product::create($data);
-
-        // Lưu danh sách màu sắc & giá theo màu
-        if ($request->has('colors') && is_array($request->colors)) {
-            foreach ($request->colors as $c) {
-                if (!empty($c['color_name'])) {
-                    \App\Models\ProductColor::create([
-                        'product_id' => $product->id,
-                        'color_name' => $c['color_name'],
-                        'color_hex' => $c['color_hex'] ?? '#FFFFFF',
-                        'extra_rent_price' => (int) ($c['extra_rent_price'] ?? 0),
-                        'rent_price_per_day' => (int) ($c['rent_price_per_day'] ?? ($product->rent_price_per_day + ($c['extra_rent_price'] ?? 0))),
-                        'extra_sale_price' => (int) ($c['extra_sale_price'] ?? 0),
-                        'quantity' => (int) ($c['quantity'] ?? 5),
-                        'is_default' => !empty($c['is_default']),
-                    ]);
+                if (is_dir(public_path('storage'))) {
+                    @copy(public_path('images/' . $gName), public_path('storage/' . $gName));
                 }
+                $galleryImages[] = $gName;
             }
-        } else {
-            // Tự động tạo 3 màu phổ biến nhất với giá khác nhau
-            $baseRent = $product->rent_price_per_day ?: 800000;
-            \App\Models\ProductColor::insert([
-                [
-                    'product_id' => $product->id,
-                    'color_name' => 'Trắng ngọc trai',
-                    'color_hex' => '#FFFFFF',
-                    'extra_rent_price' => 50000,
-                    'rent_price_per_day' => $baseRent + 50000,
-                    'extra_sale_price' => 10000000,
-                    'quantity' => 5,
-                    'is_default' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                [
-                    'product_id' => $product->id,
-                    'color_name' => 'Đen ánh kim',
-                    'color_hex' => '#111111',
-                    'extra_rent_price' => 0,
-                    'rent_price_per_day' => $baseRent,
-                    'extra_sale_price' => 0,
-                    'quantity' => 5,
-                    'is_default' => 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                [
-                    'product_id' => $product->id,
-                    'color_name' => 'Đỏ thể thao',
-                    'color_hex' => '#D0021B',
-                    'extra_rent_price' => 100000,
-                    'rent_price_per_day' => $baseRent + 100000,
-                    'extra_sale_price' => 20000000,
-                    'quantity' => 5,
-                    'is_default' => 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-            ]);
         }
 
-        // Chú ý: Đã sửa thành admin.products.index
-        return redirect()->route('admin.products.index')->with('success', 'Đã thêm xe mới kèm phân loại giá theo màu sắc thành công!');
+        $rentPrice = (int) $request->rent_price_per_day;
+        $driverPrice = (int) ($request->driver_price_per_day ?: 0);
+        $deposit = (int) $request->rental_deposit;
+        $salePrice = $request->filled('price') ? (int) $request->price : ($rentPrice * 300);
+
+        $product = Product::create([
+            'partner_id' => $request->partner_id ?: null,
+            'category_id' => $request->category_id,
+            'name' => $request->name,
+            'price' => $salePrice,
+            'is_for_rent' => 1,
+            'rent_price_per_day' => $rentPrice,
+            'driver_price_per_day' => $driverPrice,
+            'rental_deposit' => $deposit,
+            'rental_status' => $request->rental_status ?: 'available',
+            'quantity' => 1, // Mỗi lần thêm là 1 chiếc xe cụ thể
+            'color' => $request->color ?: 'Trắng ngọc trai',
+            'description' => $request->description,
+            'image' => $imageName,
+            'gallery_images' => !empty($galleryImages) ? json_encode($galleryImages) : null,
+            'car_plate' => $request->car_plate,
+            'car_year' => (int) $request->car_year,
+            'car_condition' => $request->car_condition,
+            'approval_status' => 'approved',
+            'approved_at' => now(),
+            'admin_feedback' => null,
+        ]);
+
+        // Tạo biến thể màu mặc định
+        \App\Models\ProductColor::create([
+            'product_id' => $product->id,
+            'color_name' => $product->color ?: 'Trắng ngọc trai',
+            'color_hex' => '#FFFFFF',
+            'extra_rent_price' => 0,
+            'rent_price_per_day' => $rentPrice,
+            'extra_sale_price' => 0,
+            'quantity' => 1,
+            'is_default' => 1,
+        ]);
+
+        return redirect()->route('admin.products.index')->with('success', "Đã thêm xe mới '{$product->name}' (BKS: {$product->car_plate}) vào kho hệ thống thành công!");
     }
 
     // Giao diện sửa thông tin xe
     public function edit(Product $product)
     {
-        $product->load('colors');
         $categories = Category::all();
-        return view('admin.products.edit', compact('product', 'categories'));
+        $partners = \App\Models\User::where('role', 'partner')->get();
+        return view('admin.products.edit', compact('product', 'categories', 'partners'));
     }
 
     // Xử lý cập nhật thông tin xe
@@ -214,120 +179,121 @@ class ProductController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'price' => 'nullable|integer|min:0',
-            'rent_price_per_day' => 'nullable|integer|min:0',
-            'driver_price_per_day' => 'nullable|integer|min:0',
-            'rental_deposit' => 'nullable|integer|min:0',
-            'quantity' => 'nullable|integer|min:0',
             'category_id' => 'required|exists:categories,id',
+            'car_plate' => 'required|string|max:50',
+            'car_year' => 'required|integer|min:2000|max:' . (date('Y') + 1),
+            'car_condition' => 'required|string|max:1000',
+            'rent_price_per_day' => 'required|numeric|min:0',
+            'rental_deposit' => 'required|numeric|min:0',
+            'driver_price_per_day' => 'nullable|numeric|min:0',
+            'price' => 'nullable|numeric|min:0',
             'color' => 'nullable|string|max:255',
-            'rental_status' => 'nullable|string|in:available,rented,maintenance,sold',
+            'rental_status' => 'required|in:available,rented,maintenance,sold',
+            'partner_id' => 'nullable|exists:users,id',
             'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'colors.*.extra_rent_price' => 'nullable|integer|min:0',
-            'colors.*.rent_price_per_day' => 'nullable|integer|min:0',
-            'colors.*.quantity' => 'nullable|integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
         ], [
             'name.required' => 'Vui lòng nhập tên mẫu xe.',
             'category_id.required' => 'Vui lòng chọn hãng xe (danh mục).',
-            'price.integer' => 'Giá bán xe phải là số nguyên (không được chứa chữ cái hoặc số thập phân).',
-            'price.min' => 'Giá bán xe không được là số âm (phải từ 0 trở lên).',
-            'rent_price_per_day.integer' => 'Giá thuê tự lái cơ bản phải là số nguyên.',
-            'rent_price_per_day.min' => 'Giá thuê tự lái không được là số âm (phải từ 0 trở lên).',
-            'driver_price_per_day.integer' => 'Phí tài xế riêng phải là số nguyên.',
-            'driver_price_per_day.min' => 'Phí tài xế riêng không được là số âm (phải từ 0 trở lên).',
-            'rental_deposit.integer' => 'Tiền cọc giữ xe phải là số nguyên.',
-            'rental_deposit.min' => 'Tiền cọc giữ xe không được là số âm (phải từ 0 trở lên).',
-            'quantity.integer' => 'Số lượng xe phải là số nguyên.',
-            'quantity.min' => 'Số lượng xe không được là số âm.',
-            'colors.*.extra_rent_price.integer' => 'Phụ phí màu phải là số nguyên.',
-            'colors.*.extra_rent_price.min' => 'Phụ phí màu không được là số âm.',
-            'colors.*.rent_price_per_day.integer' => 'Tổng giá thuê theo màu phải là số nguyên.',
-            'colors.*.rent_price_per_day.min' => 'Tổng giá thuê theo màu không được là số âm.',
-            'colors.*.quantity.integer' => 'Số lượng xe theo màu phải là số nguyên.',
-            'colors.*.quantity.min' => 'Số lượng xe theo màu không được là số âm.',
+            'car_plate.required' => 'Vui lòng nhập Biển số xe (BKS).',
+            'car_year.required' => 'Vui lòng nhập Năm sản xuất / Đời xe.',
+            'car_condition.required' => 'Vui lòng nhập Tình trạng kỹ thuật, Đăng kiểm & Bảo hiểm của xe.',
+            'rent_price_per_day.required' => 'Vui lòng nhập giá thuê xe tự lái theo ngày.',
+            'rental_deposit.required' => 'Vui lòng nhập số tiền cọc thế chân giữ xe.',
         ]);
 
-        $data = $request->all();
+        $data = [
+            'category_id' => $request->category_id,
+            'partner_id' => $request->partner_id ?: null,
+            'name' => $request->name,
+            'car_plate' => $request->car_plate,
+            'car_year' => (int) $request->car_year,
+            'car_condition' => $request->car_condition,
+            'rent_price_per_day' => (int) $request->rent_price_per_day,
+            'driver_price_per_day' => (int) ($request->driver_price_per_day ?: 0),
+            'rental_deposit' => (int) $request->rental_deposit,
+            'rental_status' => $request->rental_status,
+            'quantity' => 1,
+            'color' => $request->color ?: 'Trắng ngọc trai',
+            'description' => $request->description,
+        ];
+
         if ($request->filled('price')) {
             $data['price'] = (int) $request->price;
         }
-        if ($request->filled('rent_price_per_day')) {
-            $data['rent_price_per_day'] = (int) $request->rent_price_per_day;
-        }
-        if ($request->filled('driver_price_per_day')) {
-            $data['driver_price_per_day'] = (int) $request->driver_price_per_day;
-        }
-        if ($request->filled('rental_deposit')) {
-            $data['rental_deposit'] = (int) $request->rental_deposit;
-        }
-        if ($request->has('quantity')) {
-            $data['quantity'] = (int) $request->quantity;
-        }
 
-        // Xử lý cập nhật ảnh đại diện mới (và xóa ảnh cũ)
+        // Xử lý upload ảnh đại diện mới
         if ($request->hasFile('image')) {
-            // Xóa ảnh cũ nếu có
-            if($product->image && file_exists(public_path('images/'.$product->image))){
-                unlink(public_path('images/'.$product->image));
+            if ($product->image && file_exists(public_path('images/' . $product->image))) {
+                @unlink(public_path('images/' . $product->image));
             }
-            // Lưu ảnh mới
-            $imageName = time().'.'.$request->image->extension();  
+            if ($product->image && is_dir(public_path('storage')) && file_exists(public_path('storage/' . $product->image))) {
+                @unlink(public_path('storage/' . $product->image));
+            }
+
+            $imageName = time() . '_' . uniqid() . '.' . $request->image->extension();
             $request->image->move(public_path('images'), $imageName);
+            if (is_dir(public_path('storage'))) {
+                @copy(public_path('images/' . $imageName), public_path('storage/' . $imageName));
+            }
             $data['image'] = $imageName;
         }
 
-        // Xử lý upload ảnh gallery mới (thêm vào gallery hiện tại)
-        if ($request->hasFile('gallery_images')) {
-            // Giữ ảnh gallery cũ
-            $existingGallery = $product->gallery_images ?? [];
-            foreach ($request->file('gallery_images') as $file) {
-                $gName = time() . '_' . uniqid() . '.' . $file->extension();
-                $file->move(public_path('images'), $gName);
-                $existingGallery[] = $gName;
-            }
-            $data['gallery_images'] = json_encode($existingGallery);
-        }
+        // Xử lý gallery
+        $currentGallery = is_array($product->gallery_images) ? $product->gallery_images : (json_decode($product->gallery_images, true) ?: []);
 
-        // Xóa ảnh gallery theo yêu cầu
         if ($request->has('remove_gallery') && is_array($request->remove_gallery)) {
-            $existingGallery = $product->gallery_images ?? [];
-            foreach ($request->remove_gallery as $removeImg) {
-                if (($key = array_search($removeImg, $existingGallery)) !== false) {
-                    unset($existingGallery[$key]);
-                    // Xóa file vật lý
-                    if (file_exists(public_path('images/' . $removeImg))) {
-                        unlink(public_path('images/' . $removeImg));
+            foreach ($request->remove_gallery as $rm) {
+                if (($key = array_search($rm, $currentGallery)) !== false) {
+                    unset($currentGallery[$key]);
+                    if (file_exists(public_path('images/' . $rm))) {
+                        @unlink(public_path('images/' . $rm));
+                    }
+                    if (is_dir(public_path('storage')) && file_exists(public_path('storage/' . $rm))) {
+                        @unlink(public_path('storage/' . $rm));
                     }
                 }
             }
-            $data['gallery_images'] = json_encode(array_values($existingGallery));
+            $currentGallery = array_values($currentGallery);
         }
+
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $file) {
+                $gName = time() . '_' . uniqid() . '.' . $file->extension();
+                $file->move(public_path('images'), $gName);
+                if (is_dir(public_path('storage'))) {
+                    @copy(public_path('images/' . $gName), public_path('storage/' . $gName));
+                }
+                $currentGallery[] = $gName;
+            }
+        }
+        $data['gallery_images'] = !empty($currentGallery) ? json_encode(array_values($currentGallery)) : null;
 
         $product->update($data);
 
-        // Cập nhật danh sách màu sắc
-        if ($request->has('colors') && is_array($request->colors)) {
-            $product->colors()->delete();
-            foreach ($request->colors as $c) {
-                if (!empty($c['color_name'])) {
-                    \App\Models\ProductColor::create([
-                        'product_id' => $product->id,
-                        'color_name' => $c['color_name'],
-                        'color_hex' => $c['color_hex'] ?? '#FFFFFF',
-                        'extra_rent_price' => (int) ($c['extra_rent_price'] ?? 0),
-                        'rent_price_per_day' => (int) ($c['rent_price_per_day'] ?? ($product->rent_price_per_day + ($c['extra_rent_price'] ?? 0))),
-                        'extra_sale_price' => (int) ($c['extra_sale_price'] ?? 0),
-                        'quantity' => (int) ($c['quantity'] ?? 5),
-                        'is_default' => !empty($c['is_default']),
-                    ]);
-                }
-            }
+        // Cập nhật ProductColor
+        $defaultColor = $product->colors()->where('is_default', 1)->first();
+        if ($defaultColor) {
+            $defaultColor->update([
+                'color_name' => $product->color ?: 'Trắng ngọc trai',
+                'rent_price_per_day' => $product->rent_price_per_day,
+                'quantity' => 1,
+            ]);
+        } else {
+            \App\Models\ProductColor::create([
+                'product_id' => $product->id,
+                'color_name' => $product->color ?: 'Trắng ngọc trai',
+                'color_hex' => '#FFFFFF',
+                'extra_rent_price' => 0,
+                'rent_price_per_day' => $product->rent_price_per_day,
+                'extra_sale_price' => 0,
+                'quantity' => 1,
+                'is_default' => 1,
+            ]);
         }
 
-        // Chú ý: Đã sửa thành admin.products.index
-        return redirect()->route('admin.products.index')->with('success', 'Cập nhật thông tin xe thành công!');
+        return redirect()->route('admin.products.index')->with('success', "Đã cập nhật thông tin xe '{$product->name}' thành công!");
     }
 
     // Xử lý xóa xe

@@ -56,12 +56,36 @@
                                 <td class="font-weight-bold">{{ number_format($product->rental_deposit ?: 5000000) }} VNĐ</td>
                             </tr>
                             <tr>
+                                <th>Biển số xe (BKS):</th>
+                                <td><span class="badge badge-dark px-2 py-1 font-weight-bold" style="font-size: 14px;">{{ $product->car_plate ?: 'Chưa cập nhật' }}</span></td>
+                            </tr>
+                            <tr>
+                                <th>Năm SX / Đời xe:</th>
+                                <td class="font-weight-bold">{{ $product->car_year ?: 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <th>Đơn vị sở hữu:</th>
+                                <td>
+                                    @if($product->partner_id)
+                                        <span class="text-primary font-weight-bold"><i class="fa fa-building mr-1"></i> {{ $product->partner->company_name ?? $product->partner->name ?? 'Đối tác' }}</span>
+                                    @else
+                                        <span class="text-success font-weight-bold"><i class="fa fa-shield mr-1"></i> Trực thuộc Sàn AutoCar</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Tình trạng kỹ thuật & Đăng kiểm:</th>
+                                <td class="text-muted">{{ $product->car_condition ?: 'Chưa có thông tin kiểm định' }}</td>
+                            </tr>
+                            <tr>
                                 <th>Trạng thái xe:</th>
                                 <td>
                                     @if($product->rental_status === 'rented')
                                         <span class="badge badge-danger px-2 py-1">Đang có khách thuê</span>
                                     @elseif($product->rental_status === 'maintenance')
                                         <span class="badge badge-warning px-2 py-1">Đang bảo dưỡng</span>
+                                    @elseif($product->rental_status === 'sold')
+                                        <span class="badge badge-secondary px-2 py-1">Đã bán</span>
                                     @else
                                         <span class="badge badge-success px-2 py-1">Sẵn sàng phục vụ</span>
                                     @endif

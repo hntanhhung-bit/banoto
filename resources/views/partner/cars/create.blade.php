@@ -56,7 +56,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label class="font-weight-bold small text-danger">Biển số xe (BKS) <span class="text-danger">*</span>:</label>
                                 <input type="text" name="car_plate" class="form-control font-weight-bold @error('car_plate') is-invalid @enderror" 
@@ -67,7 +67,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label class="font-weight-bold small">Năm SX / Đời xe <span class="text-danger">*</span>:</label>
                                 <input type="number" name="car_year" class="form-control @error('car_year') is-invalid @enderror" 
@@ -78,19 +78,11 @@
                             </div>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label class="font-weight-bold small">Màu sắc chủ đạo:</label>
                                 <input type="text" name="color" class="form-control" 
                                        placeholder="VD: Trắng ngọc trai, Đen..." value="{{ old('color', 'Trắng ngọc trai') }}">
-                            </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label class="font-weight-bold small">Số lượng xe:</label>
-                                <input type="number" name="quantity" class="form-control" 
-                                       value="{{ old('quantity', 1) }}" min="1">
                             </div>
                         </div>
                     </div>
