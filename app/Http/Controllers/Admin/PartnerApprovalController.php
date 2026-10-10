@@ -52,7 +52,13 @@ class PartnerApprovalController extends Controller
         $countRejected = User::where('partner_status', 'rejected')->where('role', '!=', 'admin')->count();
         $countTotal = User::where('role', '!=', 'admin')->count();
 
-        $partners = $query->orderByRaw("FIELD(partner_status, 'pending', 'none', 'approved', 'rejected')")
+        $partners = $query->orderByRaw("CASE 
+            WHEN partner_status = 'pending' THEN 1 
+            WHEN partner_status = 'none' OR partner_status IS NULL THEN 2 
+            WHEN partner_status = 'approved' THEN 3 
+            WHEN partner_status = 'rejected' THEN 4 
+            ELSE 5 
+        END")
             ->orderBy('id', 'desc')
             ->paginate(15)
             ->withQueryString();

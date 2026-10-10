@@ -40,8 +40,13 @@
                         <tr>
                             <td class="font-weight-bold text-primary align-middle">
                                 <div>#{{ $order->order_code }}</div>
+                                @if($order->partner)
+                                    <span class="badge badge-success text-white mt-1" style="font-size: 10px;">
+                                        <i class="fa fa-handshake-o"></i> Chốt từ Showroom
+                                    </span>
+                                @endif
                                 @if($order->ghn_order_code)
-                                    <small class="badge badge-danger text-white mt-1">
+                                    <small class="badge badge-danger text-white mt-1 d-block">
                                         <i class="fa fa-truck"></i> {{ $order->ghn_order_code }}
                                     </small>
                                 @endif
@@ -49,8 +54,8 @@
                             <td class="align-middle text-muted" style="font-size: 13px;">{{ $order->created_at->format('d/m/Y H:i') }}</td>
                             <td class="align-middle">
                                 @foreach($order->items as $item)
-                                    <div class="mb-1">
-                                        - <strong>{{ $item->product_name }}</strong> (x{{ $item->quantity }})
+                                    <div class="mb-1 font-weight-bold text-dark">
+                                        <i class="fa fa-car text-primary mr-1"></i> {{ $item->product_name }} (x{{ $item->quantity }})
                                         @if(!empty($item->color))
                                             <span class="badge badge-light border text-dark ml-1" style="font-size: 11px;">
                                                 <i class="fa fa-paint-brush text-primary"></i> {{ $item->color }}
@@ -58,6 +63,12 @@
                                         @endif
                                     </div>
                                 @endforeach
+                                @if($order->partner)
+                                    <div class="small text-muted mt-1">
+                                        <i class="fa fa-building-o text-success mr-1"></i> Showroom: 
+                                        <strong class="text-dark">{{ $order->partner->partner_showroom_name ?: ($order->partner->showroom_name ?: $order->partner->name) }}</strong>
+                                    </div>
+                                @endif
                             </td>
                             <td class="text-center align-middle">
                                 @if($order->delivery_type === 'garage_delivery')
@@ -79,10 +90,12 @@
                                 <div class="mb-1">
                                     @if($order->payment_method === 'momo')
                                         <span class="badge" style="background-color: #a50064; color: #fff; font-weight: bold;">
-                                            <i class="fa fa-credit-card mr-1"></i> MoMo
+                                            <i class="fa fa-credit-card mr-1"></i> Ví MoMo
                                         </span>
                                     @elseif($order->payment_method === 'bank_transfer')
                                         <span class="badge badge-info">Chuyển khoản QR</span>
+                                    @elseif($order->payment_method === 'showroom')
+                                        <span class="badge badge-warning text-dark">Tiền mặt / Showroom</span>
                                     @else
                                         <span class="badge badge-secondary">COD / Showroom</span>
                                     @endif
@@ -111,7 +124,7 @@
                                 @endif
                             </td>
                             <td class="text-center align-middle">
-                                <a href="{{ route('checkout.success', $order->order_code) }}" class="btn btn-sm btn-outline-primary font-weight-bold mb-1">
+                                <a href="{{ route('orders.show', $order->id) }}" class="btn btn-sm btn-outline-primary font-weight-bold mb-1">
                                     <i class="fa fa-eye"></i> Xem
                                 </a>
                                 @if($order->payment_status !== 'paid' && $order->order_status !== 'cancelled')

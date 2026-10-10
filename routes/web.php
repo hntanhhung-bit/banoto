@@ -34,7 +34,7 @@ Route::get('/email/verify', function (Request $request) {
     if ($user && !$user->getActiveOtp()) {
         $user->generateVerificationOtp();
     }
-    return view('auth.verify-email', compact('user')); 
+    return view('auth.verify-email', compact('user'));
 })->middleware('auth')->name('verification.notice');
 
 // 2. Route xử lý xác thực bằng mã OTP 6 số
@@ -67,7 +67,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     $user = User::findOrFail($id);
 
     // Kiểm tra tính hợp lệ của mã băm email
-    if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+    if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
         abort(403, 'Link xác minh không hợp lệ hoặc đã bị chỉnh sửa.');
     }
 
@@ -105,7 +105,7 @@ Route::post('/email/instant-verify', function (Request $request) {
     $user = $request->user();
     if (!$user->hasVerifiedEmail()) {
         $user->markEmailAsVerified();
-        event(new \Illuminate\Auth\Events\Verified($user));
+        event(new Verified($user));
     }
     return redirect()->route('welcome')->with('success', 'Chúc mừng! Tài khoản của bạn đã được kích hoạt xác thực email thành công.');
 })->middleware(['auth'])->name('verification.instant');
@@ -194,14 +194,14 @@ Route::prefix('locations')->name('locations.')->group(function () {
 // Đường dẫn dành cho Admin (Bảo vệ bằng middleware)
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    
+
     // Báo cáo doanh thu & Thống kê kinh doanh (Lab 8)
     Route::get('/admin/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('admin.reports.index');
     Route::get('/admin/reports/charts', [\App\Http\Controllers\Admin\ReportController::class, 'charts'])->name('admin.reports.charts');
 
     // Quản lý sản phẩm (xe) & danh mục (hãng xe)
     Route::resource('/admin/products', ProductController::class, ['as' => 'admin']);
-    Route::post('/admin/products/bulk-approval', [\App\Http\Controllers\ProductController::class, 'bulkApproval'])->name('admin.products.bulkApproval');
+    Route::post('/admin/products/bulk-approval', [ProductController::class, 'bulkApproval'])->name('admin.products.bulkApproval');
     Route::resource('/admin/categories', CategoryController::class, ['as' => 'admin']);
 
     // Quản lý đơn đặt xe & thanh toán
@@ -237,8 +237,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/admin/partners/{user}/reject', [\App\Http\Controllers\Admin\PartnerApprovalController::class, 'reject'])->name('admin.partners.reject');
 
     // Phê duyệt & Kiểm định xe của Đối tác trước khi hiển thị trên sàn
-    Route::post('/admin/products/{product}/approve-car', [\App\Http\Controllers\ProductController::class, 'approveCar'])->name('admin.products.approveCar');
-    Route::post('/admin/products/{product}/reject-car', [\App\Http\Controllers\ProductController::class, 'rejectCar'])->name('admin.products.rejectCar');
+    Route::post('/admin/products/{product}/approve-car', [ProductController::class, 'approveCar'])->name('admin.products.approveCar');
+    Route::post('/admin/products/{product}/reject-car', [ProductController::class, 'rejectCar'])->name('admin.products.rejectCar');
 
     // Quản lý người dùng & phân quyền tài khoản
     Route::get('/admin/users', [UserController::class, 'index'])->name('admin.users.index');
@@ -280,12 +280,12 @@ Route::middleware(['auth', 'partner'])->prefix('partner')->name('partner.')->gro
     Route::delete('/cars/{product}', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'destroyCar'])->name('cars.destroy');
     Route::patch('/cars/{product}/status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'updateCarStatus'])->name('cars.updateStatus');
     Route::post('/cars/bulk-status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'bulkUpdateCarStatus'])->name('cars.bulkStatus');
-    
+
     Route::get('/appointments', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'appointments'])->name('appointments');
     Route::patch('/appointments/{appointment}/status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'updateAppointmentStatus'])->name('appointments.updateStatus');
     Route::get('/appointments/{appointment}/pay-commission-momo', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'payAppointmentCommissionMomo'])->name('appointments.payCommissionMomo');
     Route::post('/appointments/{appointment}/confirm-commission', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'confirmAppointmentCommission'])->name('appointments.confirmCommission');
-    
+
     Route::get('/rentals', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'rentals'])->name('rentals');
     Route::post('/rentals/bulk-status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'bulkUpdateRentalStatus'])->name('rentals.bulkStatus');
     Route::get('/rentals/{rental}/voucher', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'voucher'])->name('rentals.voucher');
@@ -293,9 +293,9 @@ Route::middleware(['auth', 'partner'])->prefix('partner')->name('partner.')->gro
     Route::post('/rentals/{rental}/verify-handover', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'verifyHandover'])->name('rentals.verifyHandover');
     Route::post('/rentals/{rental}/refund', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'refund'])->name('rentals.refund');
     Route::get('/rentals/{rental}/pay-commission-momo', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'payCommissionMomo'])->name('rentals.payCommissionMomo');
-    
+
     Route::get('/payouts', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'payouts'])->name('payouts');
-    
+
     // Thống kê Doanh thu & Biểu đồ trực quan Đối tác (Tương tự Admin)
     Route::get('/reports', [\App\Http\Controllers\Partner\PartnerReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/charts', [\App\Http\Controllers\Partner\PartnerReportController::class, 'charts'])->name('reports.charts');
@@ -303,3 +303,6 @@ Route::middleware(['auth', 'partner'])->prefix('partner')->name('partner.')->gro
 
 // Cho phép khách xem chi tiết sản phẩm bình thường
 Route::get('/products/{product}', [ProductController::class, 'show_normal'])->name('products.show');
+
+// Trang đặt dịch vụ & thanh toán (Tách biệt khỏi trang chi tiết)
+Route::get('/products/{product}/booking', [ProductController::class, 'showBooking'])->name('products.booking');

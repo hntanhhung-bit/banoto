@@ -176,30 +176,67 @@
                             <div class="form-group">
                                 <label class="font-weight-bold small">Giá bán xe niêm yết (VNĐ, tùy chọn nếu bán xe):</label>
                                 <input type="number" name="price" class="form-control" 
-                                       value="{{ old('price', (int)$product->price) }}" min="0">
+                                       value="{{ old('price', !is_null($product->price) ? (int)$product->price : '') }}" min="0">
                                 <small class="text-muted">Khi khách chốt mua qua lịch hẹn xem xe, bạn trích 1% hoa hồng môi giới cho sàn.</small>
                             </div>
                         </div>
 
                         <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="font-weight-bold small">Thay đổi hình ảnh xe:</label>
+                            <div class="form-group mb-2">
+                                <label class="font-weight-bold small">1. Thay đổi ảnh đại diện xe:</label>
                                 <input type="file" name="image" class="form-control-file border p-1 rounded" accept="image/*" onchange="previewCarImage(event)">
                                 <small class="text-muted d-block mt-1">Chọn ảnh mới nếu muốn thay đổi. Để trống nếu giữ nguyên.</small>
                             </div>
-                            <div class="d-flex align-items-center mt-2">
+                            <div class="d-flex align-items-center mb-3">
                                 @if($product->image)
                                     <div class="mr-3 text-center">
                                         <small class="text-muted d-block">Ảnh hiện tại:</small>
-                                        <img src="{{ $product->image_url }}" class="rounded shadow-sm" style="height: 80px; object-fit: cover;"
+                                        <img src="{{ $product->image_url }}" class="rounded shadow-sm" style="height: 75px; object-fit: cover;"
                                              onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=200&auto=format&fit=crop&q=60';">
                                     </div>
                                 @endif
                                 <div id="imagePreviewBox" style="display: none;" class="text-center">
                                     <small class="text-success d-block font-weight-bold">Ảnh mới:</small>
-                                    <img id="previewImg" src="#" alt="Preview" class="rounded shadow-sm" style="height: 80px; object-fit: cover;">
+                                    <img id="previewImg" src="#" alt="Preview" class="rounded shadow-sm" style="height: 75px; object-fit: cover;">
                                 </div>
                             </div>
+
+                            <!-- Quản lý ảnh gallery hiện có -->
+                            @php
+                                $partnerGallery = is_array($product->gallery_images) ? $product->gallery_images : (json_decode($product->gallery_images, true) ?: []);
+                            @endphp
+                            @if(!empty($partnerGallery))
+                                <div class="mb-3 p-2 bg-light rounded border">
+                                    <label class="font-weight-bold small text-dark d-block mb-1">Ảnh chi tiết đang có (Tick để xóa):</label>
+                                    <div class="d-flex flex-wrap" style="gap: 8px;">
+                                        @foreach($partnerGallery as $pGImg)
+                                            @php
+                                                $pGUrl = filter_var($pGImg, FILTER_VALIDATE_URL) ? $pGImg : asset('images/' . $pGImg);
+                                            @endphp
+                                            <div class="border rounded bg-white p-1 text-center shadow-sm" style="width: 85px;">
+                                                <img src="{{ $pGUrl }}" style="width: 75px; height: 50px; object-fit: cover;" class="rounded"
+                                                     onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=200&auto=format&fit=crop&q=60';">
+                                                <div class="form-check mt-1">
+                                                    <input type="checkbox" name="remove_gallery[]" value="{{ $pGImg }}" class="form-check-input" id="p_rm_{{ md5($pGImg) }}">
+                                                    <label class="form-check-label text-danger small font-weight-bold" for="p_rm_{{ md5($pGImg) }}" style="font-size: 11px;">Xóa</label>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <div class="form-group mb-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <label class="font-weight-bold small mb-0 text-success">
+                                        <i class="fa fa-images mr-1"></i> 2. Tải thêm ảnh vào bộ sưu tập:
+                                    </label>
+                                    <span class="badge badge-success" id="partner_edit_gallery_count" style="display: none;">0 ảnh</span>
+                                </div>
+                                <input type="file" name="gallery_images[]" id="partner_edit_gallery_input" multiple class="form-control-file border p-1 rounded mt-1" accept="image/*">
+                                <small class="text-muted d-block mt-1">Giữ <strong>Ctrl</strong> hoặc <strong>Shift</strong> để chọn nhiều ảnh cùng lúc.</small>
+                            </div>
+                            <div id="partner_edit_gallery_preview" class="d-flex flex-wrap mt-2" style="gap: 6px;"></div>
                         </div>
                     </div>
 
@@ -240,5 +277,32 @@ function previewCarImage(event) {
         reader.readAsDataURL(event.target.files[0]);
     }
 }
+
+document.getElementById('partner_edit_gallery_input')?.addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    const container = document.getElementById('partner_edit_gallery_preview');
+    const countBadge = document.getElementById('partner_edit_gallery_count');
+    container.innerHTML = '';
+
+    if (files.length > 0) {
+        countBadge.innerText = files.length + ' ảnh mới chọn';
+        countBadge.style.display = 'inline-block';
+
+        files.forEach((file) => {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const card = document.createElement('div');
+                card.className = 'border rounded bg-white shadow-sm overflow-hidden';
+                card.style.width = '70px';
+                card.style.height = '50px';
+                card.innerHTML = `<img src="${evt.target.result}" style="width:100%; height:100%; object-fit:cover;" title="${file.name}">`;
+                container.appendChild(card);
+            };
+            reader.readAsDataURL(file);
+        });
+    } else {
+        countBadge.style.display = 'none';
+    }
+});
 </script>
 @endsection

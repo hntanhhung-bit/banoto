@@ -14,6 +14,14 @@ class WelcomeController extends Controller
             ->where(function($q) {
                 $q->whereNull('partner_id')
                   ->orWhere('approval_status', 'approved');
+            })
+            // Gỡ bỏ hoàn toàn xe đã bán khỏi trang chủ (do khách đã mua hoặc chốt deal_won)
+            ->where(function($q) {
+                $q->whereNull('rental_status')
+                  ->orWhere('rental_status', '!=', 'sold');
+            })
+            ->whereDoesntHave('appointments', function($q) {
+                $q->where('deal_status', 'deal_won');
             });
 
         // 1. Tìm kiếm theo từ khóa (Tên xe hoặc Mô tả)
@@ -114,13 +122,32 @@ class WelcomeController extends Controller
         // Lấy danh sách sản phẩm có phân trang (12 xe / trang) và giữ lại query parameters trên link
         $products = $query->paginate(12)->withQueryString();
 
-        // Lấy danh sách Hãng xe kèm số lượng xe của từng hãng
-        $categories = Category::withCount('products')->get();
+        // Lấy danh sách Hãng xe kèm số lượng xe còn hiển thị của từng hãng (không tính xe đã bán)
+        $categories = Category::withCount(['products' => function($q) {
+            $q->where(function($sq) {
+                $sq->whereNull('partner_id')
+                  ->orWhere('approval_status', 'approved');
+            })
+            ->where(function($sq) {
+                $sq->whereNull('rental_status')
+                  ->orWhere('rental_status', '!=', 'sold');
+            })
+            ->whereDoesntHave('appointments', function($sq) {
+                $sq->where('deal_status', 'deal_won');
+            });
+        }])->get();
 
-        // Lấy danh mục các màu sắc cơ bản và các màu trong database
+        // Lấy danh mục các màu sắc cơ bản và các màu trong database (chỉ từ xe chưa bán)
         $basicColors = ['Trắng', 'Đen', 'Đỏ', 'Bạc', 'Xám', 'Xanh dương', 'Xanh lá', 'Vàng cát', 'Nâu', 'Cam'];
         $dbColors = Product::whereNotNull('color')
             ->where('color', '!=', '')
+            ->where(function($q) {
+                $q->whereNull('rental_status')
+                  ->orWhere('rental_status', '!=', 'sold');
+            })
+            ->whereDoesntHave('appointments', function($q) {
+                $q->where('deal_status', 'deal_won');
+            })
             ->distinct()
             ->pluck('color')
             ->toArray();

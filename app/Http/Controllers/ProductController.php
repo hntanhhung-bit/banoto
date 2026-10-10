@@ -83,9 +83,10 @@ class ProductController extends Controller
             'quantity' => 'nullable|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'color' => 'nullable|string|max:255',
-            'rental_status' => 'nullable|string|in:available,rented,maintenance',
+            'rental_status' => 'nullable|string|in:available,rented,maintenance,sold',
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'colors.*.extra_rent_price' => 'nullable|integer|min:0',
             'colors.*.rent_price_per_day' => 'nullable|integer|min:0',
             'colors.*.quantity' => 'nullable|integer|min:0',
@@ -117,11 +118,22 @@ class ProductController extends Controller
         $data['rental_deposit'] = $request->filled('rental_deposit') ? (int) $request->rental_deposit : 0;
         $data['quantity'] = $request->filled('quantity') ? (int) $request->quantity : 10;
 
-        // Xử lý upload ảnh
+        // Xử lý upload ảnh đại diện chính
         if ($request->hasFile('image')) {
             $imageName = time().'.'.$request->image->extension();  
             $request->image->move(public_path('images'), $imageName);
             $data['image'] = $imageName;
+        }
+
+        // Xử lý upload nhiều ảnh gallery
+        if ($request->hasFile('gallery_images')) {
+            $galleryNames = [];
+            foreach ($request->file('gallery_images') as $file) {
+                $gName = time() . '_' . uniqid() . '.' . $file->extension();
+                $file->move(public_path('images'), $gName);
+                $galleryNames[] = $gName;
+            }
+            $data['gallery_images'] = json_encode($galleryNames);
         }
 
         $product = Product::create($data);
@@ -134,9 +146,9 @@ class ProductController extends Controller
                         'product_id' => $product->id,
                         'color_name' => $c['color_name'],
                         'color_hex' => $c['color_hex'] ?? '#FFFFFF',
-                        'extra_rent_price' => (float) ($c['extra_rent_price'] ?? 0),
-                        'rent_price_per_day' => (float) ($c['rent_price_per_day'] ?? ($product->rent_price_per_day + ($c['extra_rent_price'] ?? 0))),
-                        'extra_sale_price' => (float) ($c['extra_sale_price'] ?? 0),
+                        'extra_rent_price' => (int) ($c['extra_rent_price'] ?? 0),
+                        'rent_price_per_day' => (int) ($c['rent_price_per_day'] ?? ($product->rent_price_per_day + ($c['extra_rent_price'] ?? 0))),
+                        'extra_sale_price' => (int) ($c['extra_sale_price'] ?? 0),
                         'quantity' => (int) ($c['quantity'] ?? 5),
                         'is_default' => !empty($c['is_default']),
                     ]);
@@ -209,9 +221,10 @@ class ProductController extends Controller
             'quantity' => 'nullable|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'color' => 'nullable|string|max:255',
-            'rental_status' => 'nullable|string|in:available,rented,maintenance',
+            'rental_status' => 'nullable|string|in:available,rented,maintenance,sold',
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'colors.*.extra_rent_price' => 'nullable|integer|min:0',
             'colors.*.rent_price_per_day' => 'nullable|integer|min:0',
             'colors.*.quantity' => 'nullable|integer|min:0',
@@ -253,17 +266,43 @@ class ProductController extends Controller
             $data['quantity'] = (int) $request->quantity;
         }
 
-        // Xử lý cập nhật ảnh mới (và xóa ảnh cũ)
+        // Xử lý cập nhật ảnh đại diện mới (và xóa ảnh cũ)
         if ($request->hasFile('image')) {
             // Xóa ảnh cũ nếu có
             if($product->image && file_exists(public_path('images/'.$product->image))){
                 unlink(public_path('images/'.$product->image));
             }
-            
             // Lưu ảnh mới
             $imageName = time().'.'.$request->image->extension();  
             $request->image->move(public_path('images'), $imageName);
             $data['image'] = $imageName;
+        }
+
+        // Xử lý upload ảnh gallery mới (thêm vào gallery hiện tại)
+        if ($request->hasFile('gallery_images')) {
+            // Giữ ảnh gallery cũ
+            $existingGallery = $product->gallery_images ?? [];
+            foreach ($request->file('gallery_images') as $file) {
+                $gName = time() . '_' . uniqid() . '.' . $file->extension();
+                $file->move(public_path('images'), $gName);
+                $existingGallery[] = $gName;
+            }
+            $data['gallery_images'] = json_encode($existingGallery);
+        }
+
+        // Xóa ảnh gallery theo yêu cầu
+        if ($request->has('remove_gallery') && is_array($request->remove_gallery)) {
+            $existingGallery = $product->gallery_images ?? [];
+            foreach ($request->remove_gallery as $removeImg) {
+                if (($key = array_search($removeImg, $existingGallery)) !== false) {
+                    unset($existingGallery[$key]);
+                    // Xóa file vật lý
+                    if (file_exists(public_path('images/' . $removeImg))) {
+                        unlink(public_path('images/' . $removeImg));
+                    }
+                }
+            }
+            $data['gallery_images'] = json_encode(array_values($existingGallery));
         }
 
         $product->update($data);
@@ -277,9 +316,9 @@ class ProductController extends Controller
                         'product_id' => $product->id,
                         'color_name' => $c['color_name'],
                         'color_hex' => $c['color_hex'] ?? '#FFFFFF',
-                        'extra_rent_price' => (float) ($c['extra_rent_price'] ?? 0),
-                        'rent_price_per_day' => (float) ($c['rent_price_per_day'] ?? ($product->rent_price_per_day + ($c['extra_rent_price'] ?? 0))),
-                        'extra_sale_price' => (float) ($c['extra_sale_price'] ?? 0),
+                        'extra_rent_price' => (int) ($c['extra_rent_price'] ?? 0),
+                        'rent_price_per_day' => (int) ($c['rent_price_per_day'] ?? ($product->rent_price_per_day + ($c['extra_rent_price'] ?? 0))),
+                        'extra_sale_price' => (int) ($c['extra_sale_price'] ?? 0),
                         'quantity' => (int) ($c['quantity'] ?? 5),
                         'is_default' => !empty($c['is_default']),
                     ]);
@@ -294,9 +333,18 @@ class ProductController extends Controller
     // Xử lý xóa xe
     public function destroy(Product $product)
     {
-        // Xóa file ảnh trong thư mục (nếu có)
+        // Xóa file ảnh đại diện trong thư mục (nếu có)
         if($product->image && file_exists(public_path('images/'.$product->image))){
-            unlink(public_path('images/'.$product->image));
+            @unlink(public_path('images/'.$product->image));
+        }
+        
+        // Xóa các file ảnh gallery (nếu có)
+        if(!empty($product->gallery_images) && is_array($product->gallery_images)){
+            foreach ($product->gallery_images as $gImg) {
+                if(file_exists(public_path('images/'.$gImg))){
+                    @unlink(public_path('images/'.$gImg));
+                }
+            }
         }
         
         $product->delete();
@@ -316,6 +364,29 @@ class ProductController extends Controller
         }
 
         return view('products.show', compact('product'));
+    }
+
+    // Trang đặt dịch vụ & thanh toán (Tách biệt khỏi trang chi tiết xe)
+    public function showBooking(Product $product)
+    {
+        // Kiểm tra xe có được hiển thị không
+        if ($product->partner_id && $product->approval_status !== 'approved') {
+            if (!\Illuminate\Support\Facades\Auth::check() || (!in_array(\Illuminate\Support\Facades\Auth::user()->role, ['admin']) && \Illuminate\Support\Facades\Auth::id() !== $product->partner_id)) {
+                abort(404, 'Mẫu xe này hiện đang trong quá trình thẩm định kỹ thuật.');
+            }
+        }
+
+        // Nếu xe đã bán thành công -> không cho phép vào trang đặt lịch hay thuê xe
+        if ($product->isSold()) {
+            return redirect()->route('products.show', $product->id)->with('error', "Mẫu xe '{$product->name}' đã được bán thành công. Không thể đặt xem xe hoặc thuê xe nữa.");
+        }
+
+        // Nếu xe đang phục vụ khách hàng -> không cho phép vào trang đặt lịch hay thuê xe
+        if ($product->isServing()) {
+            return redirect()->route('products.show', $product->id)->with('error', "Mẫu xe '{$product->name}' hiện tại đang trong chuyến phục vụ khách hàng (đang cho thuê). Tạm thời không thể đặt xem xe, lái thử hoặc thuê xe lúc này.");
+        }
+
+        return view('products.booking', compact('product'));
     }
 
     // Hiển thị chi tiết xe trong khu vực Admin

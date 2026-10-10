@@ -14,6 +14,14 @@ class HomeController extends Controller
             ->where(function($q) {
                 $q->whereNull('partner_id')
                   ->orWhere('approval_status', 'approved');
+            })
+            // Gỡ bỏ hoàn toàn xe đã bán khỏi danh sách (do khách đã mua hoặc chốt deal_won)
+            ->where(function($q) {
+                $q->whereNull('rental_status')
+                  ->orWhere('rental_status', '!=', 'sold');
+            })
+            ->whereDoesntHave('appointments', function($q) {
+                $q->where('deal_status', 'deal_won');
             });
 
         // Logic bộ lọc tìm kiếm

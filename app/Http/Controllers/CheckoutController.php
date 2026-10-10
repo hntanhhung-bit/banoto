@@ -225,8 +225,17 @@ class CheckoutController extends Controller
     // Lịch sử đơn hàng của người dùng
     public function myOrders()
     {
-        $orders = Order::with('items')
-            ->where('user_id', Auth::id())
+        $user = Auth::user();
+        $orders = Order::with(['items.product', 'partner', 'appointment'])
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+                if ($user->email) {
+                    $q->orWhere('customer_email', $user->email);
+                }
+                if ($user->phone) {
+                    $q->orWhere('customer_phone', $user->phone);
+                }
+            })
             ->orderBy('id', 'desc')
             ->paginate(10);
 

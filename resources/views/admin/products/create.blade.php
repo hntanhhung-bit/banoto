@@ -189,10 +189,32 @@
                     <textarea name="description" class="form-control" rows="4" placeholder="Nhập thông tin động cơ, số chỗ ngồi, tính năng an toàn, tình trạng xe...">{{ old('description') }}</textarea>
                 </div>
 
-                <div class="mb-4">
-                    <label class="font-weight-bold">Hình ảnh đại diện xe</label>
-                    <input type="file" name="image" class="form-control-file">
-                    <small class="text-muted d-block mt-1">*(Hỗ trợ định dạng: jpeg, png, jpg, gif - Tối đa 2MB)*</small>
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label class="font-weight-bold text-dark">
+                            <i class="fa fa-camera text-primary mr-1"></i> 1. Hình ảnh đại diện chính (Ảnh bìa xe)
+                        </label>
+                        <input type="file" name="image" id="main_image_input" accept="image/*" class="form-control-file border p-2 rounded bg-light">
+                        <small class="text-muted d-block mt-1">*(Hỗ trợ định dạng: jpeg, png, jpg, gif, webp - Tối đa 2MB)*</small>
+                        <div id="main_image_preview" class="mt-2" style="display: none;">
+                            <img src="" id="main_preview_img" class="img-thumbnail rounded shadow-sm" style="max-height: 140px; object-fit: cover;">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="font-weight-bold text-dark mb-0">
+                                <i class="fa fa-images text-success mr-1"></i> 2. Bộ sưu tập ảnh xe (Chọn nhiều ảnh cùng 1 lúc)
+                            </label>
+                            <span class="badge badge-success px-2 py-1" id="gallery_count_badge" style="display: none;">0 ảnh đã chọn</span>
+                        </div>
+                        <input type="file" name="gallery_images[]" id="gallery_images_input" accept="image/*" multiple class="form-control-file border p-2 rounded bg-light">
+                        <small class="text-success font-weight-bold d-block mt-1">
+                            <i class="fa fa-info-circle"></i> Giữ phím <strong>Ctrl</strong> (hoặc <strong>Shift</strong>) khi chọn để tải lên nhiều ảnh (nội thất, ngoại thất, cốp, khoang lái...)
+                        </small>
+                        
+                        <div id="gallery_preview_container" class="mt-2 d-flex flex-wrap" style="gap: 8px;"></div>
+                    </div>
                 </div>
 
                 <hr>
@@ -204,17 +226,65 @@
 
 <script>
     function updateColorPrices() {
-        const basePrice = parseFloat(document.getElementById('base_rent_price').value) || 0;
+        const basePrice = parseInt(document.getElementById('base_rent_price').value, 10) || 0;
         for (let i = 0; i < 3; i++) {
-            const extra = parseFloat(document.getElementById('extra_price_' + i).value) || 0;
-            document.getElementById('total_price_' + i).value = basePrice + extra;
+            const extra = parseInt(document.getElementById('extra_price_' + i).value, 10) || 0;
+            document.getElementById('total_price_' + i).value = Math.round(basePrice + extra);
         }
     }
 
     function calculateRowPrice(index) {
-        const basePrice = parseFloat(document.getElementById('base_rent_price').value) || 0;
-        const extra = parseFloat(document.getElementById('extra_price_' + index).value) || 0;
-        document.getElementById('total_price_' + index).value = basePrice + extra;
+        const basePrice = parseInt(document.getElementById('base_rent_price').value, 10) || 0;
+        const extra = parseInt(document.getElementById('extra_price_' + index).value, 10) || 0;
+        document.getElementById('total_price_' + index).value = Math.round(basePrice + extra);
     }
+
+    // Xem trước ảnh đại diện chính
+    document.getElementById('main_image_input')?.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const previewContainer = document.getElementById('main_image_preview');
+        const previewImg = document.getElementById('main_preview_img');
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                previewImg.src = evt.target.result;
+                previewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.style.display = 'none';
+        }
+    });
+
+    // Xem trước danh sách nhiều ảnh gallery
+    document.getElementById('gallery_images_input')?.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        const container = document.getElementById('gallery_preview_container');
+        const countBadge = document.getElementById('gallery_count_badge');
+        container.innerHTML = '';
+
+        if (files.length > 0) {
+            countBadge.innerText = files.length + ' ảnh đã chọn';
+            countBadge.style.display = 'inline-block';
+
+            files.forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const card = document.createElement('div');
+                    card.className = 'position-relative border rounded shadow-sm bg-white overflow-hidden';
+                    card.style.width = '80px';
+                    card.style.height = '70px';
+                    card.innerHTML = `
+                        <img src="${evt.target.result}" style="width: 100%; height: 100%; object-fit: cover;" title="${file.name}">
+                        <span class="badge badge-dark position-absolute" style="top: 2px; left: 2px; font-size: 9px; opacity: 0.85;">#${idx + 1}</span>
+                    `;
+                    container.appendChild(card);
+                };
+                reader.readAsDataURL(file);
+            });
+        } else {
+            countBadge.style.display = 'none';
+        }
+    });
 </script>
 @endsection

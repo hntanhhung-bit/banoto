@@ -30,6 +30,16 @@ class AppointmentController extends Controller
             'appointment_time.required' => 'Vui lòng chọn khung giờ hẹn.',
         ]);
 
+        // Kiểm tra xe đã bán chưa
+        if ($product->isSold()) {
+            return redirect()->back()->with('error', "Rất tiếc! Mẫu xe '{$product->name}' đã được bán thành công. Không thể đặt lịch xem xe hoặc lái thử nữa.");
+        }
+
+        // Kiểm tra xe có đang bận phục vụ khách hàng không
+        if ($product->isServing()) {
+            return redirect()->back()->with('error', "Rất tiếc! Mẫu xe '{$product->name}' hiện tại đang trong chuyến phục vụ khách hàng. Không thể đặt lịch xem xe hoặc lái thử lúc này.");
+        }
+
         $appointmentCode = 'HEN' . date('Ymd') . rand(1000, 9999);
         $partnerShowroom = $product->partner_showroom;
 

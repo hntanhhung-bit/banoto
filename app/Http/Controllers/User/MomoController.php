@@ -458,6 +458,15 @@ class MomoController extends Controller
                 'status' => 'completed',
             ]);
 
+            // Gỡ xe khỏi trang chủ và đánh dấu đã bán thành công
+            $appointment->product?->update([
+                'rental_status' => 'sold',
+                'quantity' => 0,
+            ]);
+
+            // Đồng bộ Đơn mua xe (Order)
+            \App\Models\Order::syncFromAppointment($appointment, 'momo', 'paid');
+
             if ($transaction) {
                 $momo->markPaid($transaction, $payload);
             }

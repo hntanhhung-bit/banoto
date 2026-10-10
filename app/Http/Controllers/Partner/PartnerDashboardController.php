@@ -201,18 +201,19 @@ class PartnerDashboardController extends Controller
 
         $baseQuery = Product::where('partner_id', $partnerId);
         $totalCars = (clone $baseQuery)->count();
-        $countAvailable = (clone $baseQuery)->where(function($q) {
+        $countAvailable = (clone $baseQuery)->where(function ($q) {
             $q->where('rental_status', 'available')->orWhereNull('rental_status');
         })->count();
         $countRented = (clone $baseQuery)->where('rental_status', 'rented')->count();
         $countMaintenance = (clone $baseQuery)->where('rental_status', 'maintenance')->count();
+        $countSold = (clone $baseQuery)->where('rental_status', 'sold')->count();
         $countPendingApproval = (clone $baseQuery)->where('approval_status', 'pending')->count();
 
         $query = Product::where('partner_id', $partnerId)->with('category');
 
         if ($request->filled('rental_status')) {
             if ($request->rental_status === 'available') {
-                $query->where(function($q) {
+                $query->where(function ($q) {
                     $q->where('rental_status', 'available')->orWhereNull('rental_status');
                 });
             } else {
@@ -229,8 +230,8 @@ class PartnerDashboardController extends Controller
             $kw = $request->keyword;
             $query->where(function ($q) use ($kw) {
                 $q->where('name', 'like', "%{$kw}%")
-                  ->orWhere('car_plate', 'like', "%{$kw}%")
-                  ->orWhere('color', 'like', "%{$kw}%");
+                    ->orWhere('car_plate', 'like', "%{$kw}%")
+                    ->orWhere('color', 'like', "%{$kw}%");
             });
         }
 
@@ -245,6 +246,7 @@ class PartnerDashboardController extends Controller
             'countAvailable',
             'countRented',
             'countMaintenance',
+            'countSold',
             'countPendingApproval',
             'categories'
         ));
@@ -277,6 +279,7 @@ class PartnerDashboardController extends Controller
             'rental_status' => 'nullable|in:available,maintenance',
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ], [
             'name.required' => 'Vui lòng nhập tên mẫu xe.',
             'category_id.required' => 'Vui lòng chọn hãng xe (danh mục).',
@@ -295,6 +298,19 @@ class PartnerDashboardController extends Controller
             $request->image->move(public_path('images'), $imageName);
             if (is_dir(public_path('storage'))) {
                 @copy(public_path('images/' . $imageName), public_path('storage/' . $imageName));
+            }
+        }
+
+        // Xử lý upload danh sách nhiều ảnh chi tiết
+        $galleryImages = [];
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $file) {
+                $gName = time() . '_' . uniqid() . '.' . $file->extension();
+                $file->move(public_path('images'), $gName);
+                if (is_dir(public_path('storage'))) {
+                    @copy(public_path('images/' . $gName), public_path('storage/' . $gName));
+                }
+                $galleryImages[] = $gName;
             }
         }
 
@@ -317,6 +333,7 @@ class PartnerDashboardController extends Controller
             'color' => $request->color ?: 'Trắng ngọc trai',
             'description' => $request->description,
             'image' => $imageName,
+            'gallery_images' => !empty($galleryImages) ? json_encode($galleryImages) : null,
             'car_plate' => $request->car_plate,
             'car_year' => (int) $request->car_year,
             'car_condition' => $request->car_condition,
@@ -375,6 +392,7 @@ class PartnerDashboardController extends Controller
             'rental_status' => 'required|in:available,rented,maintenance',
             'description' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
         ], [
             'name.required' => 'Vui lòng nhập tên mẫu xe.',
             'category_id.required' => 'Vui lòng chọn hãng xe (danh mục).',
@@ -410,7 +428,7 @@ class PartnerDashboardController extends Controller
             $data['price'] = (float) $request->price;
         }
 
-        // Cập nhật ảnh nếu có tải ảnh mới
+        // Cập nhật ảnh đại diện nếu có tải ảnh mới
         if ($request->hasFile('image')) {
             if ($product->image && file_exists(public_path('images/' . $product->image))) {
                 @unlink(public_path('images/' . $product->image));
@@ -427,6 +445,35 @@ class PartnerDashboardController extends Controller
             $data['image'] = $imageName;
         }
 
+        // Cập nhật bộ sưu tập ảnh chi tiết
+        $currentGallery = is_array($product->gallery_images) ? $product->gallery_images : (json_decode($product->gallery_images, true) ?: []);
+
+        // Xóa ảnh đã chọn xóa
+        if ($request->has('remove_gallery') && is_array($request->remove_gallery)) {
+            foreach ($request->remove_gallery as $rm) {
+                if (($key = array_search($rm, $currentGallery)) !== false) {
+                    unset($currentGallery[$key]);
+                    if (file_exists(public_path('images/' . $rm))) {
+                        @unlink(public_path('images/' . $rm));
+                    }
+                }
+            }
+            $currentGallery = array_values($currentGallery);
+        }
+
+        // Thêm ảnh mới vào gallery
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $file) {
+                $gName = time() . '_' . uniqid() . '.' . $file->extension();
+                $file->move(public_path('images'), $gName);
+                if (is_dir(public_path('storage'))) {
+                    @copy(public_path('images/' . $gName), public_path('storage/' . $gName));
+                }
+                $currentGallery[] = $gName;
+            }
+        }
+        $data['gallery_images'] = !empty($currentGallery) ? json_encode(array_values($currentGallery)) : null;
+
         $product->update($data);
 
         return redirect()->route('partner.cars')->with('success', "✅ Đã cập nhật thông tin mẫu xe '{$product->name}' thành công!");
@@ -438,6 +485,19 @@ class PartnerDashboardController extends Controller
         $partnerId = $this->getPartnerId();
         if ($product->partner_id !== $partnerId && Auth::user()->role !== 'admin') {
             abort(403, 'Bạn không có quyền gỡ mẫu xe này.');
+        }
+
+        // Xóa file ảnh đại diện và gallery
+        if ($product->image && file_exists(public_path('images/' . $product->image))) {
+            @unlink(public_path('images/' . $product->image));
+        }
+        if (!empty($product->gallery_images)) {
+            $gallery = is_array($product->gallery_images) ? $product->gallery_images : (json_decode($product->gallery_images, true) ?: []);
+            foreach ($gallery as $g) {
+                if (file_exists(public_path('images/' . $g))) {
+                    @unlink(public_path('images/' . $g));
+                }
+            }
         }
 
         $hasActiveRentals = $product->rentals()->whereIn('rental_status', ['pending', 'confirmed', 'in_progress'])->exists();
@@ -460,7 +520,7 @@ class PartnerDashboardController extends Controller
         }
 
         $request->validate([
-            'rental_status' => 'required|in:available,rented,maintenance',
+            'rental_status' => 'required|in:available,rented,maintenance,sold',
         ]);
 
         $product->update([
@@ -477,7 +537,7 @@ class PartnerDashboardController extends Controller
         $request->validate([
             'car_ids' => 'required|array|min:1',
             'car_ids.*' => 'exists:products,id',
-            'rental_status' => 'required|in:available,rented,maintenance',
+            'rental_status' => 'required|in:available,rented,maintenance,sold',
         ], [
             'car_ids.required' => 'Vui lòng tích chọn ít nhất 1 xe để thực hiện.',
             'car_ids.min' => 'Vui lòng tích chọn ít nhất 1 xe để thực hiện.',
@@ -516,7 +576,7 @@ class PartnerDashboardController extends Controller
         $countPending = (clone $baseQuery)->where('status', 'pending')->count();
         $countConfirmed = (clone $baseQuery)->where('status', 'confirmed')->count();
         $countDealWon = (clone $baseQuery)->where('deal_status', 'deal_won')->count();
-        $countLostOrCancelled = (clone $baseQuery)->where(function($q) {
+        $countLostOrCancelled = (clone $baseQuery)->where(function ($q) {
             $q->where('deal_status', 'deal_lost')->orWhere('status', 'cancelled');
         })->count();
 
@@ -527,7 +587,7 @@ class PartnerDashboardController extends Controller
         }
         if ($request->filled('deal_status')) {
             if ($request->deal_status === 'deal_lost') {
-                $query->where(function($q) {
+                $query->where(function ($q) {
                     $q->where('deal_status', 'deal_lost')->orWhere('status', 'cancelled');
                 });
             } else {
@@ -538,11 +598,11 @@ class PartnerDashboardController extends Controller
             $kw = $request->keyword;
             $query->where(function ($q) use ($kw) {
                 $q->where('appointment_code', 'like', "%{$kw}%")
-                  ->orWhere('customer_name', 'like', "%{$kw}%")
-                  ->orWhere('customer_phone', 'like', "%{$kw}%")
-                  ->orWhereHas('product', function($pq) use ($kw) {
-                      $pq->where('name', 'like', "%{$kw}%");
-                  });
+                    ->orWhere('customer_name', 'like', "%{$kw}%")
+                    ->orWhere('customer_phone', 'like', "%{$kw}%")
+                    ->orWhereHas('product', function ($pq) use ($kw) {
+                        $pq->where('name', 'like', "%{$kw}%");
+                    });
             });
         }
 
@@ -596,17 +656,40 @@ class PartnerDashboardController extends Controller
                 'deal_status' => 'deal_lost',
                 'admin_note' => $request->admin_note,
             ]);
+
+            // Cập nhật trạng thái đơn hàng (nếu có) sang đã hủy
+            $existingOrder = \App\Models\Order::where('appointment_id', $appointment->id)->first();
+            if ($existingOrder) {
+                $existingOrder->update(['order_status' => 'cancelled']);
+            }
+
+            // Nếu xe trước đó đang ở trạng thái sold và chưa có giao dịch nào đã nộp 1% hoa hồng thành công, khôi phục lại xe
+            if ($appointment->product && $appointment->product->rental_status === 'sold') {
+                $hasOtherPaidWon = Appointment::where('product_id', $appointment->product_id)
+                    ->where('id', '!=', $appointment->id)
+                    ->where('deal_status', 'deal_won')
+                    ->where('commission_status', 'paid')
+                    ->exists();
+                if (!$hasOtherPaidWon) {
+                    $appointment->product->update([
+                        'rental_status' => 'available',
+                        'quantity' => 1,
+                    ]);
+                }
+            }
+
             return redirect()->back()->with('info', '🔒 Đã ghi nhận Khách không mua / Hủy lịch hẹn. Trạng thái lịch hẹn này đã được khóa lại vĩnh viễn.');
         }
 
         // Trường hợp 2: Chuyển sang Khách đồng ý mua xe -> Yêu cầu nộp 1% hoa hồng sàn
         if ($dealStatus === 'deal_won') {
-            $dealPrice = $request->filled('deal_price') && (float)$request->deal_price > 0 
-                ? (float)$request->deal_price 
+            $dealPrice = $request->filled('deal_price') && (float) $request->deal_price > 0
+                ? (float) $request->deal_price
                 : ($appointment->deal_price ?: ($appointment->product?->price ?: 500000000));
-            
+
             // 1% giá trị xe chốt mua
             $commissionAmount = round($dealPrice * 0.01);
+            $paymentMethod = $request->input('payment_method', 'bank_transfer');
 
             $appointment->update([
                 'status' => 'confirmed',
@@ -618,7 +701,16 @@ class PartnerDashboardController extends Controller
                 'admin_note' => $request->admin_note,
             ]);
 
-            return redirect()->back()->with('warning', '⚠️ ĐÃ GHI NHẬN KHÁCH ĐỒNG Ý MUA XE! Nhà xe vui lòng thanh toán đúng 1% hoa hồng Sàn (' . number_format($commissionAmount) . ' VNĐ) qua Cổng VietQR SePay hoặc MoMo bên dưới. Sau khi hoàn tất nộp hoa hồng, hệ thống sẽ chốt và khóa trạng thái.');
+            // Gỡ xe đó ra khỏi trang chủ do khách đã chốt mua xe
+            $appointment->product?->update([
+                'rental_status' => 'sold',
+                'quantity' => 0,
+            ]);
+
+            // Tự động đồng bộ / tạo Đơn mua xe (Order) cho khách hàng & Admin quản lý
+            \App\Models\Order::syncFromAppointment($appointment, $paymentMethod, 'paid');
+
+            return redirect()->back()->with('warning', '⚠️ ĐÃ GHI NHẬN KHÁCH ĐỒNG Ý MUA XE! Hệ thống đã tự động gỡ mẫu xe này khỏi trang chủ và đồng bộ sang Đơn mua xe của Admin & Khách hàng. Nhà xe vui lòng thanh toán đúng 1% hoa hồng Sàn (' . number_format($commissionAmount) . ' VNĐ) qua Cổng VietQR SePay hoặc MoMo bên dưới để hoàn tất và khóa hồ sơ.');
         }
 
         // Trường hợp 3: Đang đàm phán / tư vấn
@@ -697,6 +789,15 @@ class PartnerDashboardController extends Controller
             'status' => 'completed',
         ]);
 
+        // Đảm bảo xe đã được gỡ khỏi trang chủ và đánh dấu đã bán
+        $appointment->product?->update([
+            'rental_status' => 'sold',
+            'quantity' => 0,
+        ]);
+
+        // Cập nhật / Đồng bộ Đơn mua xe (Order)
+        \App\Models\Order::syncFromAppointment($appointment, 'bank_transfer', 'paid');
+
         PaymentTransaction::create([
             'gateway' => 'sepay',
             'gateway_order_id' => 'COMM1_' . $appointment->appointment_code,
@@ -730,13 +831,13 @@ class PartnerDashboardController extends Controller
         // 3. Tìm kiếm theo từ khóa
         if ($request->filled('keyword')) {
             $kw = trim($request->keyword);
-            $query->where(function($q) use ($kw) {
+            $query->where(function ($q) use ($kw) {
                 $q->where('rental_code', 'like', "%{$kw}%")
-                  ->orWhere('customer_name', 'like', "%{$kw}%")
-                  ->orWhere('customer_phone', 'like', "%{$kw}%")
-                  ->orWhereHas('product', function($pq) use ($kw) {
-                      $pq->where('name', 'like', "%{$kw}%");
-                  });
+                    ->orWhere('customer_name', 'like', "%{$kw}%")
+                    ->orWhere('customer_phone', 'like', "%{$kw}%")
+                    ->orWhereHas('product', function ($pq) use ($kw) {
+                        $pq->where('name', 'like', "%{$kw}%");
+                    });
             });
         }
 

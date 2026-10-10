@@ -234,7 +234,51 @@
                             </a>
                         </li>
                     @else
-                        <!-- KIỂM TRA QUYỀN: Nếu là Admin/Partner thì hiện nút Quản lý tương ứng -->
+                        <!-- Dropdown Dịch vụ của tôi (Hiển thị cho TẤT CẢ người dùng: Khách hàng, Partner và Admin) -->
+                        <li class="nav-item dropdown mr-2">
+                            <a class="btn btn-outline-primary btn-sm dropdown-toggle font-weight-bold px-3 shadow-sm" href="#" id="myServicesDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="border-radius: 20px;">
+                                <i class="fa fa-user-circle mr-1"></i> Dịch vụ của tôi
+                                @php
+                                    $navAppCount = Auth::user()->appointments()->whereIn('status', ['pending', 'confirmed'])->count();
+                                    $navRentCount = Auth::user()->rentals()->whereIn('rental_status', ['pending', 'confirmed', 'in_progress'])->count();
+                                    $navTotalActive = $navAppCount + $navRentCount;
+                                @endphp
+                                @if($navTotalActive > 0)
+                                    <span class="badge badge-danger ml-1" style="font-size: 10px;">{{ $navTotalActive }}</span>
+                                @endif
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right shadow border-0" aria-labelledby="myServicesDropdown" style="border-radius: 12px; min-width: 250px;">
+                                <div class="px-3 py-2 bg-light border-bottom">
+                                    <div class="small font-weight-bold text-dark">{{ Auth::user()->name }}</div>
+                                    <div class="small text-muted" style="font-size: 11px;">
+                                        @if(Auth::user()->role === 'admin')
+                                            <span class="badge badge-danger">Quản trị viên</span>
+                                        @elseif(Auth::user()->role === 'partner')
+                                            <span class="badge badge-success">Đối tác Showroom</span>
+                                        @else
+                                            <span class="badge badge-info">Khách hàng</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <a class="dropdown-item py-2 d-flex justify-content-between align-items-center" href="{{ route('appointments.my') }}">
+                                    <span><i class="fa fa-calendar-check-o text-success mr-2"></i> Lịch hẹn xem xe của tôi</span>
+                                    @if($navAppCount > 0)
+                                        <span class="badge badge-success">{{ $navAppCount }}</span>
+                                    @endif
+                                </a>
+                                <a class="dropdown-item py-2 d-flex justify-content-between align-items-center" href="{{ route('rentals.my') }}">
+                                    <span><i class="fa fa-key text-danger mr-2"></i> Đơn thuê xe của tôi</span>
+                                    @if($navRentCount > 0)
+                                        <span class="badge badge-danger">{{ $navRentCount }}</span>
+                                    @endif
+                                </a>
+                                <a class="dropdown-item py-2" href="{{ route('orders.my') }}">
+                                    <i class="fa fa-shopping-bag text-primary mr-2"></i> Đơn mua xe của tôi
+                                </a>
+                            </div>
+                        </li>
+
+                        <!-- Nút truy cập Trang Quản trị tương ứng theo vai trò -->
                         @if(Auth::user()->role === 'partner')
                             <li class="nav-item">
                                 <a class="btn btn-success btn-sm px-3 mr-2 font-weight-bold shadow-sm" href="{{ route('partner.dashboard') }}" style="border-radius: 20px;">
@@ -251,20 +295,6 @@
                                 <a class="btn btn-dark btn-sm px-3 mr-2 font-weight-bold shadow-sm" href="{{ route('admin.dashboard') }}" style="border-radius: 20px;">
                                     <i class="fa fa-cogs"></i> Quản trị Admin
                                 </a>
-                            </li>
-                        @else
-                            <li class="nav-item dropdown mr-2">
-                                <a class="btn btn-outline-primary btn-sm dropdown-toggle font-weight-bold px-3" href="#" id="myServicesDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="border-radius: 20px;">
-                                    <i class="fa fa-user-circle mr-1"></i> Dịch vụ của tôi
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-right shadow border-0" aria-labelledby="myServicesDropdown" style="border-radius: 10px;">
-                                    <a class="dropdown-item py-2" href="{{ route('appointments.my') }}">
-                                        <i class="fa fa-calendar-check-o text-success mr-2"></i> Lịch hẹn xem xe của tôi
-                                    </a>
-                                    <a class="dropdown-item py-2" href="{{ route('rentals.my') }}">
-                                        <i class="fa fa-key text-danger mr-2"></i> Đơn thuê xe của tôi
-                                    </a>
-                                </div>
                             </li>
                         @endif
 

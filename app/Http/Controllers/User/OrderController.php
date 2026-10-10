@@ -32,8 +32,17 @@ class OrderController extends Controller
 
     public function orderHistory()
     {
-        $orders = Order::where('user_id', Auth::id())
-            ->with(['items.product'])
+        $user = Auth::user();
+        $orders = Order::where(function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+                if ($user->email) {
+                    $q->orWhere('customer_email', $user->email);
+                }
+                if ($user->phone) {
+                    $q->orWhere('customer_phone', $user->phone);
+                }
+            })
+            ->with(['items.product', 'partner', 'appointment'])
             ->orderByDesc('created_at')
             ->paginate(10);
 
@@ -42,11 +51,16 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        if ($order->user_id !== Auth::id() && (!Auth::user() || !Auth::user()->is_admin)) {
+        $user = Auth::user();
+        $isOwner = $order->user_id === $user->id 
+            || ($user->email && $order->customer_email === $user->email)
+            || ($user->phone && $order->customer_phone === $user->phone);
+
+        if (!$isOwner && $user->role !== 'admin') {
             abort(403);
         }
 
-        $order->load(['items.product']);
+        $order->load(['items.product', 'partner', 'appointment']);
 
         return view('orders.show', compact('order'));
     }

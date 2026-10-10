@@ -30,6 +30,18 @@ class Product extends Model
         'color',
         'description',
         'image',
+        'gallery_images',
+    ];
+
+    // Tự động cast các trường sang kiểu số nguyên và mảng
+    protected $casts = [
+        'gallery_images' => 'array',
+        'price' => 'integer',
+        'rent_price_per_day' => 'integer',
+        'driver_price_per_day' => 'integer',
+        'rental_deposit' => 'integer',
+        'quantity' => 'integer',
+        'car_year' => 'integer',
     ];
 
     // Khai báo: 1 Sản phẩm (Ô tô) thuộc về 1 Danh mục
@@ -75,8 +87,8 @@ class Product extends Model
             return $this->colors;
         }
 
-        $baseRentPrice = $this->rent_price_per_day ?: 800000;
-        $baseSalePrice = $this->price ?: 500000000;
+        $baseRentPrice = (int) ($this->rent_price_per_day ?: 800000);
+        $baseSalePrice = (int) ($this->price ?: 500000000);
 
         // 3 màu phổ biến nhất của ô tô với phân loại giá khác nhau
         return collect([
@@ -171,5 +183,81 @@ class Product extends Model
 
         // Ảnh xe mặc định chất lượng cao khi chưa tải ảnh lên
         return 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop&q=80';
+    }
+
+    // Lấy tất cả URL ảnh của xe (ảnh đại diện + gallery) - dùng cho slider trang chi tiết
+    public function getAllImages(): array
+    {
+        $all = [];
+
+        // 1. Ảnh đại diện chính luôn là ảnh đầu tiên
+        if (!empty($this->image_url)) {
+            $all[] = $this->image_url;
+        }
+
+        // 2. Thêm ảnh gallery nếu có
+        $gallery = $this->gallery_images;
+        if (is_string($gallery)) {
+            $decoded = json_decode($gallery, true);
+            if (is_array($decoded)) {
+                $gallery = $decoded;
+            }
+        }
+
+        if (!empty($gallery) && is_array($gallery)) {
+            foreach ($gallery as $img) {
+                if (empty($img)) continue;
+                if (filter_var($img, FILTER_VALIDATE_URL)) {
+                    $all[] = $img;
+                } elseif (file_exists(public_path('images/' . $img))) {
+                    $all[] = asset('images/' . $img);
+                } elseif (file_exists(public_path('storage/' . $img))) {
+                    $all[] = asset('storage/' . $img);
+                } else {
+                    $all[] = asset('images/' . $img);
+                }
+            }
+        }
+
+        // Loại bỏ trùng lặp và đảm bảo luôn có ít nhất 1 ảnh fallback
+        $all = array_values(array_unique($all));
+        if (empty($all)) {
+            $all[] = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop&q=80';
+        }
+
+        return $all;
+    }
+
+    // Kiểm tra xe đã được bán thành công (chốt mua / nộp hoa hồng sàn) chưa
+    public function isSold(): bool
+    {
+        // 1. Trạng thái trực tiếp của xe trong bảng products là đã bán hoặc hết tồn kho
+        if ($this->rental_status === 'sold' || (isset($this->quantity) && $this->quantity <= 0)) {
+            return true;
+        }
+
+        // 2. Kiểm tra xem có lịch hẹn mua xe nào đã chốt deal_won
+        return $this->appointments()
+            ->where('deal_status', 'deal_won')
+            ->exists();
+    }
+
+    // Kiểm tra xe có đang bận phục vụ (đang có khách thuê / đang trong chuyến đi / đang bảo dưỡng / đã bán) không
+    public function isServing(): bool
+    {
+        // Nếu xe đã được bán thì không cho phép phục vụ đặt lịch hay thuê nữa
+        if ($this->isSold()) {
+            return true;
+        }
+
+        // 1. Trạng thái trực tiếp của xe trong bảng products
+        if (in_array($this->rental_status, ['rented', 'maintenance'])) {
+            return true;
+        }
+
+        // 2. Kiểm tra xem có đơn thuê xe nào đang hoạt động (confirmed: nhà xe đã nhận đơn / in_progress: đang phục vụ)
+        return $this->rentals()
+            ->whereIn('rental_status', ['confirmed', 'in_progress'])
+            ->exists();
     }
 }

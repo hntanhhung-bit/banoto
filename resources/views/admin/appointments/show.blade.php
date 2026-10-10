@@ -25,13 +25,14 @@
                     </div>
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-3">
-                                <img src="{{ $appointment->product ? $appointment->product->image_url : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=200&auto=format&fit=crop&q=60' }}" 
-                                     class="rounded mr-3" style="width: 100px; height: 75px; object-fit: cover;" 
-                                     alt="{{ $appointment->product->name ?? 'Xe' }}"
-                                     onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=200&auto=format&fit=crop&q=60';">
+                            <img src="{{ $appointment->product ? $appointment->product->image_url : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=200&auto=format&fit=crop&q=60' }}"
+                                class="rounded mr-3" style="width: 100px; height: 75px; object-fit: cover;"
+                                alt="{{ $appointment->product->name ?? 'Xe' }}"
+                                onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=200&auto=format&fit=crop&q=60';">
                             <div>
                                 <h5 class="font-weight-bold text-dark mb-1">
-                                    {{ $appointment->product->name ?? 'Xe không tồn tại' }}</h5>
+                                    {{ $appointment->product->name ?? 'Xe không tồn tại' }}
+                                </h5>
                                 <span
                                     class="badge badge-info mr-1">{{ $appointment->product->category->name ?? 'Dòng xe' }}</span>
                                 @if($appointment->selected_color)

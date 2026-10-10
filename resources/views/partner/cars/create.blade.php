@@ -157,13 +157,25 @@
 
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label class="font-weight-bold small">Tải lên hình ảnh xe:</label>
+                                <label class="font-weight-bold small">1. Ảnh đại diện chính (Ảnh bìa xe):</label>
                                 <input type="file" name="image" class="form-control-file border p-1 rounded" accept="image/*" onchange="previewCarImage(event)">
                                 <small class="text-muted d-block mt-1">Định dạng JPG, PNG, WEBP tối đa 4MB.</small>
                             </div>
-                            <div id="imagePreviewBox" class="mt-2" style="display: none;">
+                            <div id="imagePreviewBox" class="mt-2 mb-3" style="display: none;">
                                 <img id="previewImg" src="#" alt="Preview" class="rounded shadow-sm" style="max-height: 120px; object-fit: cover;">
                             </div>
+
+                            <div class="form-group">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <label class="font-weight-bold small mb-0 text-success">
+                                        <i class="fa fa-images mr-1"></i> 2. Bộ sưu tập ảnh xe (chọn nhiều ảnh cùng lúc):
+                                    </label>
+                                    <span class="badge badge-success" id="partner_gallery_count" style="display: none;">0 ảnh</span>
+                                </div>
+                                <input type="file" name="gallery_images[]" id="partner_gallery_input" multiple class="form-control-file border p-1 rounded mt-1" accept="image/*">
+                                <small class="text-muted d-block mt-1">Giữ phím <strong>Ctrl</strong> hoặc <strong>Shift</strong> để chọn nhiều ảnh (nội thất, vô lăng, cốp, khoang máy...)</small>
+                            </div>
+                            <div id="partner_gallery_preview" class="d-flex flex-wrap mt-2" style="gap: 6px;"></div>
                         </div>
                     </div>
 
@@ -210,5 +222,32 @@ function previewCarImage(event) {
         reader.readAsDataURL(event.target.files[0]);
     }
 }
+
+document.getElementById('partner_gallery_input')?.addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    const container = document.getElementById('partner_gallery_preview');
+    const countBadge = document.getElementById('partner_gallery_count');
+    container.innerHTML = '';
+
+    if (files.length > 0) {
+        countBadge.innerText = files.length + ' ảnh đã chọn';
+        countBadge.style.display = 'inline-block';
+
+        files.forEach((file, idx) => {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const card = document.createElement('div');
+                card.className = 'border rounded bg-white shadow-sm overflow-hidden';
+                card.style.width = '70px';
+                card.style.height = '50px';
+                card.innerHTML = `<img src="${evt.target.result}" style="width:100%; height:100%; object-fit:cover;" title="${file.name}">`;
+                container.appendChild(card);
+            };
+            reader.readAsDataURL(file);
+        });
+    } else {
+        countBadge.style.display = 'none';
+    }
+});
 </script>
 @endsection

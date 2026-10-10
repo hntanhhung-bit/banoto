@@ -310,6 +310,223 @@
         </div>
     </div>
 
+    @auth
+        @php
+            $myAppointments = Auth::user()->appointments()->with('product')->orderBy('id', 'desc')->take(2)->get();
+            $myRentals = Auth::user()->rentals()->with('product')->orderBy('id', 'desc')->take(2)->get();
+
+            $authUser = Auth::user();
+            $myOrdersQuery = \App\Models\Order::where(function($q) use ($authUser) {
+                $q->where('user_id', $authUser->id);
+                if ($authUser->email) $q->orWhere('customer_email', $authUser->email);
+                if ($authUser->phone) $q->orWhere('customer_phone', $authUser->phone);
+            });
+            $myOrders = (clone $myOrdersQuery)->with(['items', 'partner'])->orderBy('id', 'desc')->take(2)->get();
+            
+            $myAppointmentsCount = Auth::user()->appointments()->count();
+            $myRentalsCount = Auth::user()->rentals()->count();
+            $myOrdersCount = (clone $myOrdersQuery)->count();
+        @endphp
+        
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0 !important;">
+            <div class="card-body p-3 p-md-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 border-bottom pb-2">
+                    <div>
+                        <h5 class="font-weight-bold text-dark mb-1">
+                            <i class="fa fa-dashboard text-primary mr-1"></i> TIẾN ĐỘ DỊCH VỤ CỦA BẠN (Lịch xem xe, Thuê xe & Mua xe)
+                        </h5>
+                        <p class="text-muted small mb-0">
+                            Xin chào <strong>{{ Auth::user()->name }}</strong> 
+                            @if(Auth::user()->role === 'admin')
+                                <span class="badge badge-danger">Quản trị viên (Admin)</span>
+                            @elseif(Auth::user()->role === 'partner')
+                                <span class="badge badge-success">Đối tác Showroom</span>
+                            @endif
+                            - Bạn có thể theo dõi và quản lý nhanh các lịch hẹn và đơn hàng của mình tại đây.
+                        </p>
+                    </div>
+                    <div class="mt-2 mt-md-0 d-flex gap-2">
+                        @if(Auth::user()->role === 'admin')
+                            <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-dark font-weight-bold mr-1">
+                                <i class="fa fa-cogs mr-1"></i> Quản trị Admin
+                            </a>
+                        @endif
+                        @if(Auth::user()->role === 'partner' || Auth::user()->role === 'admin')
+                            <a href="{{ route('partner.dashboard') }}" class="btn btn-sm btn-success font-weight-bold">
+                                <i class="fa fa-handshake-o mr-1"></i> Kênh Đối tác
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- KHỐI 1: LỊCH HẸN XEM XE CỦA TÔI -->
+                    <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
+                        <div class="p-3 rounded h-100 border d-flex flex-column justify-content-between" style="background: #f8fafc; border-left: 4px solid #28a745 !important;">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="font-weight-bold text-dark" style="font-size: 14px;">
+                                        <i class="fa fa-calendar-check-o text-success mr-1"></i> Lịch hẹn xem xe ({{ $myAppointmentsCount }})
+                                    </span>
+                                    <a href="{{ route('appointments.my') }}" class="small font-weight-bold text-success">
+                                        Xem tất cả &rarr;
+                                    </a>
+                                </div>
+                                @forelse($myAppointments as $app)
+                                    <div class="bg-white p-2 rounded mb-2 border shadow-sm small">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <strong class="text-primary">#{{ $app->appointment_code }}</strong>
+                                            @if($app->status === 'confirmed')
+                                                <span class="badge badge-success">Đã duyệt hẹn</span>
+                                            @elseif($app->status === 'completed')
+                                                <span class="badge badge-primary">Đã xong</span>
+                                            @elseif($app->status === 'cancelled')
+                                                <span class="badge badge-secondary">Đã hủy</span>
+                                            @else
+                                                <span class="badge badge-warning text-dark">Chờ kết nối</span>
+                                            @endif
+                                        </div>
+                                        <div class="font-weight-bold text-dark mt-1 text-truncate">{{ $app->product->name ?? 'Xe xem lái thử' }}</div>
+                                        <div class="text-muted" style="font-size: 11px;">
+                                            <i class="fa fa-clock-o"></i> {{ date('d/m/Y', strtotime($app->appointment_date)) }} ({{ $app->appointment_time }})
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="text-muted small py-3 text-center">
+                                        <em>Bạn chưa có lịch hẹn xem xe nào.</em>
+                                        <div class="mt-2">
+                                            <a href="{{ route('welcome', ['service' => 'view']) }}" class="btn btn-xs btn-outline-success font-weight-bold">
+                                                + Đặt lịch xem xe hộ
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endforelse
+                            </div>
+                            <a href="{{ route('appointments.my') }}" class="btn btn-sm btn-outline-success font-weight-bold btn-block mt-2">
+                                <i class="fa fa-list mr-1"></i> Quản lý lịch hẹn của tôi
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- KHỐI 2: ĐƠN THUÊ XE & KÝ QUỸ CỦA TÔI -->
+                    <div class="col-lg-4 col-md-6 mb-3 mb-lg-0">
+                        <div class="p-3 rounded h-100 border d-flex flex-column justify-content-between" style="background: #f8fafc; border-left: 4px solid #dc3545 !important;">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="font-weight-bold text-dark" style="font-size: 14px;">
+                                        <i class="fa fa-key text-danger mr-1"></i> Đơn thuê xe & Ký quỹ ({{ $myRentalsCount }})
+                                    </span>
+                                    <a href="{{ route('rentals.my') }}" class="small font-weight-bold text-danger">
+                                        Xem tất cả &rarr;
+                                    </a>
+                                </div>
+                                @forelse($myRentals as $rental)
+                                    <div class="bg-white p-2 rounded mb-2 border shadow-sm small">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <strong class="text-primary">#{{ $rental->rental_code }}</strong>
+                                            @if($rental->rental_status === 'in_progress')
+                                                <span class="badge badge-primary">Đang phục vụ</span>
+                                            @elseif($rental->rental_status === 'confirmed')
+                                                <span class="badge badge-info text-white">Đã nhận đơn</span>
+                                            @elseif($rental->rental_status === 'returned')
+                                                <span class="badge badge-success">Đã trả xe</span>
+                                            @elseif($rental->rental_status === 'cancelled')
+                                                <span class="badge badge-secondary">Đã hủy</span>
+                                            @else
+                                                <span class="badge badge-warning text-dark">Chờ điều phối</span>
+                                            @endif
+                                        </div>
+                                        <div class="font-weight-bold text-dark mt-1 text-truncate">{{ $rental->product->name ?? 'Xe thuê' }}</div>
+                                        <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
+                                            <span><i class="fa fa-calendar"></i> {{ date('d/m', strtotime($rental->start_date)) }} - {{ date('d/m/Y', strtotime($rental->end_date)) }}</span>
+                                            <strong class="text-danger">{{ number_format($rental->total_amount) }} đ</strong>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="text-muted small py-3 text-center">
+                                        <em>Bạn chưa có đơn thuê xe nào.</em>
+                                        <div class="mt-2">
+                                            <a href="{{ route('welcome', ['service' => 'rent_self']) }}" class="btn btn-xs btn-outline-danger font-weight-bold mr-1">
+                                                + Thuê tự lái
+                                            </a>
+                                            <a href="{{ route('welcome', ['service' => 'rent_driver']) }}" class="btn btn-xs btn-outline-primary font-weight-bold">
+                                                + Thuê tài xế
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endforelse
+                            </div>
+                            <a href="{{ route('rentals.my') }}" class="btn btn-sm btn-outline-danger font-weight-bold btn-block mt-2">
+                                <i class="fa fa-list mr-1"></i> Quản lý đơn thuê xe của tôi
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- KHỐI 3: ĐƠN MUA XE ĐÃ ĐẶT CỦA TÔI -->
+                    <div class="col-lg-4 col-md-12">
+                        <div class="p-3 rounded h-100 border d-flex flex-column justify-content-between" style="background: #f8fafc; border-left: 4px solid #005fb7 !important;">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="font-weight-bold text-dark" style="font-size: 14px;">
+                                        <i class="fa fa-shopping-bag text-primary mr-1"></i> Đơn mua xe ({{ $myOrdersCount }})
+                                    </span>
+                                    <a href="{{ route('orders.my') }}" class="small font-weight-bold text-primary">
+                                        Xem tất cả &rarr;
+                                    </a>
+                                </div>
+                                @forelse($myOrders as $order)
+                                    <div class="bg-white p-2 rounded mb-2 border shadow-sm small">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <strong class="text-primary">#{{ $order->order_code }}</strong>
+                                            @if($order->order_status === 'completed')
+                                                <span class="badge badge-success">Đã bàn giao</span>
+                                            @elseif($order->order_status === 'shipping')
+                                                <span class="badge badge-info text-white">Đang giao xe</span>
+                                            @elseif($order->order_status === 'confirmed')
+                                                <span class="badge badge-primary">Đã xác nhận</span>
+                                            @elseif($order->order_status === 'cancelled')
+                                                <span class="badge badge-danger">Đã hủy</span>
+                                            @else
+                                                <span class="badge badge-warning text-dark">Chờ xử lý</span>
+                                            @endif
+                                        </div>
+                                        <div class="font-weight-bold text-dark mt-1 text-truncate">
+                                            {{ $order->items->first()?->product_name ?? 'Đơn mua xe' }}
+                                            @if($order->items->count() > 1)
+                                                <span class="badge badge-light border">(+{{ $order->items->count() - 1 }})</span>
+                                            @endif
+                                        </div>
+                                        @if($order->partner)
+                                            <div class="text-truncate text-success" style="font-size: 11px;">
+                                                <i class="fa fa-building-o mr-1"></i>{{ $order->partner->partner_showroom_name ?: ($order->partner->showroom_name ?: $order->partner->name) }}
+                                            </div>
+                                        @endif
+                                        <div class="d-flex justify-content-between text-muted" style="font-size: 11px;">
+                                            <span>{{ $order->created_at->format('d/m/Y H:i') }}</span>
+                                            <strong class="text-danger">{{ number_format($order->total_amount) }} đ</strong>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="text-muted small py-3 text-center">
+                                        <em>Bạn chưa có đơn đặt mua xe nào.</em>
+                                        <div class="mt-2">
+                                            <a href="{{ route('welcome') }}" class="btn btn-xs btn-outline-primary font-weight-bold">
+                                                + Khám phá xe mua
+                                            </a>
+                                        </div>
+                                    </div>
+                                @endforelse
+                            </div>
+                            <a href="{{ route('orders.my') }}" class="btn btn-sm btn-outline-primary font-weight-bold btn-block mt-2">
+                                <i class="fa fa-list mr-1"></i> Quản lý đơn mua xe của tôi
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endauth
+
     <!-- THANH CHỌN NHANH DỊCH VỤ -->
     <div class="service-selector">
         <a href="{{ route('welcome') }}" 
@@ -472,7 +689,7 @@
                     $rentPrice = $product->rent_price_per_day ?: 800000;
                     $driverPrice = $product->driver_price_per_day ?: 500000;
                     $totalDriverRent = $rentPrice + $driverPrice;
-                    $isRented = ($product->rental_status === 'rented');
+                    $isRented = $product->isServing();
                 @endphp
                 <div class="col-lg-3 col-md-6 mb-4">
                     <div class="car-card">
@@ -486,10 +703,12 @@
                                 </span>
                             @endif
 
-                            @if($isRented)
-                                <span class="car-status-badge badge-danger">Đang cho thuê</span>
+                            @if($product->isSold())
+                                <span class="car-status-badge badge-dark"><i class="fa fa-handshake-o"></i> Đã bán</span>
+                            @elseif($isRented)
+                                <span class="car-status-badge badge-danger"><i class="fa fa-road"></i> Đang phục vụ</span>
                             @else
-                                <span class="car-status-badge badge-success">Xe đang rảnh</span>
+                                <span class="car-status-badge badge-success"><i class="fa fa-check-circle"></i> Sẵn sàng</span>
                             @endif
                         </div>
 
@@ -522,18 +741,29 @@
                             </div>
 
                             <!-- 3 Nút hành động dịch vụ Bên thứ ba -->
-                            <div class="card-actions mb-2">
-                                <a href="{{ route('products.show', $product->id) }}#tab-appointment" class="btn btn-outline-success btn-action-custom">
-                                    <i class="fa fa-calendar-check-o"></i> Đặt xem hộ
-                                </a>
-                                <a href="{{ route('products.show', $product->id) }}#tab-rental-self" class="btn btn-outline-danger btn-action-custom">
-                                    <i class="fa fa-key"></i> Thuê tự lái
-                                </a>
-                            </div>
+                            @if($isRented)
+                                <div class="mt-auto">
+                                    <div class="alert alert-danger py-1 px-2 mb-2 text-center small font-weight-bold" style="font-size: 11px; border-radius: 6px;">
+                                        <i class="fa fa-lock mr-1"></i> Xe đang phục vụ khách
+                                    </div>
+                                    <a href="{{ route('products.show', $product->id) }}" class="btn btn-outline-secondary btn-sm btn-block font-weight-bold" style="border-radius: 6px; font-size: 13px;">
+                                        <i class="fa fa-eye mr-1"></i> Xem thông tin xe
+                                    </a>
+                                </div>
+                            @else
+                                <div class="card-actions mb-2">
+                                    <a href="{{ route('products.show', $product->id) }}" class="btn btn-outline-success btn-action-custom">
+                                        <i class="fa fa-calendar-check-o"></i> Đặt xem hộ
+                                    </a>
+                                    <a href="{{ route('products.show', $product->id) }}" class="btn btn-outline-danger btn-action-custom">
+                                        <i class="fa fa-key"></i> Thuê tự lái
+                                    </a>
+                                </div>
 
-                            <a href="{{ route('products.show', $product->id) }}#tab-rental-driver" class="btn btn-primary btn-sm btn-block font-weight-bold" style="border-radius: 6px; font-size: 13px;">
-                                <i class="fa fa-user-circle mr-1"></i> Đặt thuê có tài xế hộ
-                            </a>
+                                <a href="{{ route('products.show', $product->id) }}" class="btn btn-primary btn-sm btn-block font-weight-bold" style="border-radius: 6px; font-size: 13px;">
+                                    <i class="fa fa-user-circle mr-1"></i> Đặt thuê có tài xế hộ
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>

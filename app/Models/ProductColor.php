@@ -20,6 +20,15 @@ class ProductColor extends Model
         'is_default',
     ];
 
+    // Tự động cast các trường giá tiền và số lượng sang số nguyên
+    protected $casts = [
+        'extra_rent_price' => 'integer',
+        'rent_price_per_day' => 'integer',
+        'extra_sale_price' => 'integer',
+        'quantity' => 'integer',
+        'is_default' => 'boolean',
+    ];
+
     public function product()
     {
         return $this->belongsTo(Product::class);

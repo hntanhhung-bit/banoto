@@ -7,11 +7,10 @@ use App\Models\Product;
 
 class CartController extends Controller
 {
-    // Hiển thị giỏ hàng
+    // Bỏ trang giỏ hàng - Điều hướng về trang chủ
     public function index()
     {
-        $cart = session()->get('cart', []);
-        return view('cart.index', compact('cart'));
+        return redirect()->route('welcome');
     }
 
     // Thêm sản phẩm vào giỏ hàng

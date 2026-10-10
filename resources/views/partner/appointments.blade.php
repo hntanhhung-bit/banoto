@@ -315,7 +315,7 @@
                                             <strong class="text-success" style="font-size: 13px;">HỒ SƠ ĐÃ HOÀN TẤT & KHÓA TRẠNG THÁI</strong>
                                         </div>
                                         <p class="text-dark small mb-1">
-                                            Showroom đã nộp đủ <strong>1% hoa hồng Sàn ({{ number_format($commissionAmount) }} đ)</strong> cho Admin. Lịch hẹn và kết quả bán xe này đã được chốt và <strong>khóa vĩnh viễn</strong>.
+                                            Showroom đã nộp đủ <strong>1% hoa hồng Sàn ({{ number_format($commissionAmount) }} đ)</strong> cho Admin. Lịch hẹn và kết quả bán xe này đã được chốt và <strong>khóa vĩnh viễn</strong>. Mẫu xe đã được hệ thống tự động <strong>gỡ khỏi trang chủ</strong> do xe đã được mua thành công.
                                         </p>
                                         <div class="small text-muted border-top pt-1 mt-1">
                                             <div><i class="fa fa-check text-success"></i> Mã đối soát: <strong class="text-primary">{{ $app->commission_proof ?: 'Hệ thống tự động ghi nhận' }}</strong></div>
@@ -474,8 +474,16 @@
                                                     <i class="fa fa-money"></i> Hoa hồng sàn thu 1%: 
                                                     <span id="commissionPreview{{ $app->id }}">{{ number_format(round(($app->deal_price ?: ($app->product?->price ?: 500000000)) * 0.01)) }}</span> đ
                                                 </div>
-                                                <small class="text-muted" style="font-size: 10px;">
-                                                    Bấm "Cập nhật" hệ thống sẽ mở cổng VietQR SePay & MoMo để nộp 1% hoa hồng. Nộp xong sẽ khóa trạng thái.
+                                                <div class="mt-2 pt-2 border-top">
+                                                    <label class="small font-weight-bold text-dark mb-1"><i class="fa fa-credit-card text-primary"></i> Khách thanh toán bằng gì:</label>
+                                                    <select name="payment_method" class="form-control form-control-sm font-weight-bold">
+                                                        <option value="bank_transfer">Chuyển khoản VietQR</option>
+                                                        <option value="momo">Ví MoMo</option>
+                                                        <option value="showroom">Thanh toán tại Showroom / Tiền mặt</option>
+                                                    </select>
+                                                </div>
+                                                <small class="text-muted d-block mt-1" style="font-size: 10px;">
+                                                    <i class="fa fa-info-circle text-info"></i> Bấm "Cập nhật" hệ thống sẽ tự động <strong>gỡ xe khỏi trang chủ</strong>, đồng bộ sang <strong>Đơn mua xe của Admin & Khách hàng</strong> và mở cổng thanh toán 1% hoa hồng Sàn.
                                                 </small>
                                             </div>
                                         </div>

@@ -50,20 +50,57 @@
                 <p class="mb-1"><strong>Người nhận:</strong> {{ $order->customer_name ?? $order->name }}</p>
                 <p class="mb-1"><strong>Số điện thoại:</strong> {{ $order->customer_phone ?? $order->phone }}</p>
                 <p class="mb-1"><strong>Địa chỉ:</strong> {{ $order->customer_address ?? $order->address }}</p>
-                <p class="mb-1"><strong>Ngày đặt:</strong> {{ $order->created_at->format('d/m/Y H:i') }}</p>
+                <p class="mb-1"><strong>Ngày thực hiện / Ngày mua:</strong> {{ $order->created_at->format('d/m/Y H:i') }}</p>
+                @if($order->partner)
+                    <div class="mt-2 p-2 bg-light rounded border border-success">
+                        <strong class="text-success"><i class="fa fa-building mr-1"></i> Showroom Đối tác bán xe:</strong>
+                        <div class="font-weight-bold text-dark">{{ $order->partner->partner_showroom_name ?: ($order->partner->showroom_name ?: $order->partner->name) }}</div>
+                        <div class="small text-muted">{{ $order->partner->partner_showroom_address ?: ($order->partner->showroom_address ?: 'Tại Showroom đối tác') }}</div>
+                        @if($order->appointment)
+                            <div class="small text-primary mt-1">Lịch hẹn: #{{ $order->appointment->appointment_code }}</div>
+                        @endif
+                    </div>
+                @endif
             </div>
             <div class="col-md-6 mb-3">
-                <p class="mb-1"><strong>Trạng thái đơn:</strong> 
-                    <span class="badge badge-info">{{ $order->order_status ?? $order->status ?? 'pending' }}</span>
+                <p class="mb-2"><strong>Trạng thái đơn:</strong> 
+                    @if($order->order_status === 'confirmed')
+                        <span class="badge badge-primary px-2 py-1">✓ Đã xác nhận đơn mua xe</span>
+                    @elseif($order->order_status === 'completed')
+                        <span class="badge badge-success px-2 py-1">★ Đã hoàn tất bàn giao</span>
+                    @elseif($order->order_status === 'shipping')
+                        <span class="badge badge-info px-2 py-1">🚚 Đang giao xe</span>
+                    @elseif($order->order_status === 'cancelled')
+                        <span class="badge badge-danger px-2 py-1">✕ Đã hủy</span>
+                    @else
+                        <span class="badge badge-warning text-dark px-2 py-1">⏳ Chờ xử lý</span>
+                    @endif
                 </p>
-                <p class="mb-1"><strong>Trạng thái vận chuyển GHN:</strong> 
-                    <span class="badge badge-primary">{{ $order->shipping_status ?? 'Chưa giao' }}</span>
+                <p class="mb-2"><strong>Thanh toán:</strong>
+                    @if($order->payment_status === 'paid')
+                        <span class="badge badge-success px-2 py-1"><i class="fa fa-check"></i> Đã thanh toán</span>
+                    @else
+                        <span class="badge badge-warning text-dark px-2 py-1"><i class="fa fa-clock-o"></i> Chưa thanh toán</span>
+                    @endif
+                    <span class="ml-1">
+                        @if($order->payment_method === 'momo')
+                            <span class="badge" style="background-color: #a50064; color: #fff;">Ví MoMo</span>
+                        @elseif($order->payment_method === 'bank_transfer')
+                            <span class="badge badge-info">Chuyển khoản VietQR</span>
+                        @elseif($order->payment_method === 'showroom')
+                            <span class="badge badge-warning text-dark">Tiền mặt / Showroom</span>
+                        @else
+                            <span class="badge badge-secondary">COD / Showroom</span>
+                        @endif
+                    </span>
                 </p>
                 @if($order->ghn_order_code)
                     <p class="mb-1"><strong>Mã vận đơn GHN:</strong> <code class="font-weight-bold text-danger">{{ $order->ghn_order_code }}</code></p>
                 @endif
-                <p class="mb-1"><strong>Phí giao hàng GHN:</strong> {{ number_format($order->ghn_total_fee ?? 0) }} đ</p>
-                <p class="mb-1"><strong>Tổng thanh toán:</strong> <span class="font-weight-bold text-danger" style="font-size: 18px;">{{ number_format($order->total_amount ?? $order->total_price ?? 0) }} đ</span></p>
+                @if($order->ghn_total_fee > 0)
+                    <p class="mb-1"><strong>Phí giao hàng:</strong> {{ number_format($order->ghn_total_fee) }} đ</p>
+                @endif
+                <p class="mb-1"><strong>Tổng giá trị xe đã chốt:</strong> <span class="font-weight-bold text-danger" style="font-size: 18px;">{{ number_format($order->total_amount ?? $order->total_price ?? 0) }} đ</span></p>
             </div>
         </div>
 

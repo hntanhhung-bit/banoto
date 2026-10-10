@@ -10,15 +10,19 @@ class OrderController extends Controller
     // Quản lý danh sách đơn hàng trong Admin
     public function index(Request $request)
     {
-        $query = Order::with(['user', 'items']);
+        $query = Order::with(['user', 'items', 'partner', 'appointment.product']);
 
-        // Tìm kiếm theo mã đơn hàng, tên khách hàng, số điện thoại
+        // Tìm kiếm theo mã đơn hàng, tên khách hàng, số điện thoại, tên showroom đối tác
         if ($request->filled('keyword')) {
             $keyword = trim($request->input('keyword'));
             $query->where(function ($q) use ($keyword) {
                 $q->where('order_code', 'like', "%{$keyword}%")
-                  ->orWhere('customer_name', 'like', "%{$keyword}%")
-                  ->orWhere('customer_phone', 'like', "%{$keyword}%");
+                    ->orWhere('customer_name', 'like', "%{$keyword}%")
+                    ->orWhere('customer_phone', 'like', "%{$keyword}%")
+                    ->orWhereHas('partner', function ($pq) use ($keyword) {
+                        $pq->where('name', 'like', "%{$keyword}%")
+                            ->orWhere('showroom_name', 'like', "%{$keyword}%");
+                    });
             });
         }
 
@@ -32,6 +36,15 @@ class OrderController extends Controller
             $query->where('payment_status', $request->input('payment_status'));
         }
 
+        // Lọc theo nguồn đơn (Chốt từ Đối tác Showroom / Mua trực tiếp)
+        if ($request->filled('source')) {
+            if ($request->input('source') === 'partner') {
+                $query->whereNotNull('partner_id');
+            } elseif ($request->input('source') === 'direct') {
+                $query->whereNull('partner_id');
+            }
+        }
+
         $orders = $query->orderBy('id', 'desc')->paginate(10)->withQueryString();
 
         return view('admin.orders.index', compact('orders'));
@@ -40,8 +53,29 @@ class OrderController extends Controller
     // Xem chi tiết đơn hàng (Admin)
     public function show(Order $order)
     {
-        $order->load(['user', 'items', 'paymentTransactions']);
-        return view('admin.orders.show', compact('order'));
+        $order->load(['user', 'items.product', 'paymentTransactions', 'partner', 'appointment.product']);
+
+        $partnerId = $order->partner_id ?: $order->appointment?->partner_id;
+        $otherPartnerAppointments = collect();
+        $otherPartnerOrders = collect();
+
+        if ($partnerId) {
+            // Lấy các lịch hẹn khác của chính partner này (bao gồm trạng thái tiếp đón và kết quả bán xe)
+            $otherPartnerAppointments = \App\Models\Appointment::where('partner_id', $partnerId)
+                ->where('id', '!=', $order->appointment_id)
+                ->with(['product', 'user'])
+                ->orderBy('id', 'desc')
+                ->get();
+
+            // Lấy các đơn bán xe khác của partner này
+            $otherPartnerOrders = Order::where('partner_id', $partnerId)
+                ->where('id', '!=', $order->id)
+                ->with(['items', 'user'])
+                ->orderBy('id', 'desc')
+                ->get();
+        }
+
+        return view('admin.orders.show', compact('order', 'otherPartnerAppointments', 'otherPartnerOrders'));
     }
 
     // Cập nhật trạng thái đơn hàng và thanh toán

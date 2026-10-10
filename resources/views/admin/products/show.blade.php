@@ -11,12 +11,19 @@
         <div class="card-body p-4">
             <div class="row">
                 <!-- Cột Hình ảnh -->
-                <div class="col-md-5 text-center mb-4 mb-md-0">
-                    @if($product->image)
-                        <img src="{{ asset('images/'.$product->image) }}" class="img-fluid rounded shadow" alt="{{ $product->name }}" style="max-height: 350px; object-fit: cover;">
-                    @else
-                        <div class="bg-light d-flex justify-content-center align-items-center rounded shadow-sm" style="height: 300px; border: 2px dashed #ccc;">
-                            <h5 class="text-muted">Chưa có hình ảnh</h5>
+                <div class="col-md-5 mb-4 mb-md-0">
+                    @php
+                        $adminImages = $product->getAllImages();
+                    @endphp
+                    <div class="text-center mb-2">
+                        <img src="{{ $adminImages[0] ?? $product->image_url }}" id="adminMainImg" class="img-fluid rounded shadow" alt="{{ $product->name }}" style="max-height: 320px; width: 100%; object-fit: cover;">
+                    </div>
+                    @if(count($adminImages) > 1)
+                        <div class="d-flex flex-wrap mt-2" style="gap: 8px;">
+                            @foreach($adminImages as $i => $aImg)
+                                <img src="{{ $aImg }}" class="rounded border shadow-sm" style="width: 65px; height: 48px; object-fit: cover; cursor: pointer;"
+                                     onclick="document.getElementById('adminMainImg').src='{{ $aImg }}'" alt="Ảnh {{ $i+1 }}">
+                            @endforeach
                         </div>
                     @endif
                 </div>

@@ -72,6 +72,12 @@
         </a>
     </li>
     <li class="nav-item mr-2 mb-2">
+        <a class="nav-link font-weight-bold {{ $status === 'sold' ? 'active bg-dark text-white' : 'bg-white text-dark border' }}" 
+           href="{{ route('partner.cars', ['rental_status' => 'sold']) }}">
+            <i class="fa fa-handshake-o mr-1"></i> Đã bán xe ({{ $countSold ?? 0 }})
+        </a>
+    </li>
+    <li class="nav-item mr-2 mb-2">
         <a class="nav-link font-weight-bold {{ $approvalStatus === 'pending' ? 'active bg-info' : 'bg-white text-info border' }}" 
            href="{{ route('partner.cars', ['approval_status' => 'pending']) }}">
             <i class="fa fa-clock-o mr-1"></i> Chờ Admin duyệt ({{ $countPendingApproval }})
@@ -218,7 +224,9 @@
 
                 <!-- Huy hiệu Tình trạng Hoạt động của Xe -->
                 <div class="position-absolute" style="top: 12px; right: 12px; z-index: 9;">
-                    @if($car->rental_status === 'available' || empty($car->rental_status))
+                    @if($car->rental_status === 'sold')
+                        <span class="badge badge-dark px-3 py-2 font-weight-bold shadow-sm"><i class="fa fa-handshake-o mr-1"></i> Đã bán xe</span>
+                    @elseif($car->rental_status === 'available' || empty($car->rental_status))
                         <span class="badge badge-success px-3 py-2 font-weight-bold shadow-sm"><i class="fa fa-check-circle mr-1"></i> Sẵn sàng đón khách</span>
                     @elseif($car->rental_status === 'rented')
                         <span class="badge badge-warning px-3 py-2 font-weight-bold shadow-sm text-dark"><i class="fa fa-car mr-1"></i> Đang có khách</span>
@@ -280,6 +288,7 @@
                             <option value="available" {{ ($car->rental_status === 'available' || empty($car->rental_status)) ? 'selected' : '' }}>✓ Sẵn sàng nhận khách</option>
                             <option value="rented" {{ $car->rental_status === 'rented' ? 'selected' : '' }}>🚗 Đang có khách thuê</option>
                             <option value="maintenance" {{ $car->rental_status === 'maintenance' ? 'selected' : '' }}>🔧 Tạm ngưng / Bảo dưỡng</option>
+                            <option value="sold" {{ $car->rental_status === 'sold' ? 'selected' : '' }}>🤝 Đã bán xe (Gỡ khỏi sàn)</option>
                         </select>
                     </div>
                 </form>

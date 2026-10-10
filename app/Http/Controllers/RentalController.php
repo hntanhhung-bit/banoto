@@ -44,9 +44,14 @@ class RentalController extends Controller
             'payment_method.required' => 'Vui lòng chọn phương thức thanh toán.',
         ]);
 
-        // Kiểm tra xe có đang rảnh không
-        if ($product->rental_status === 'rented') {
-            return redirect()->back()->with('error', "Mẫu xe '{$product->name}' hiện tại đang có khách thuê. Vui lòng chọn mẫu xe khác hoặc đặt lịch hẹn xem xe!");
+        // Kiểm tra xe đã bán chưa
+        if ($product->isSold()) {
+            return redirect()->back()->with('error', "Rất tiếc! Mẫu xe '{$product->name}' đã được bán thành công. Không thể thuê xe này nữa!");
+        }
+
+        // Kiểm tra xe có đang bận phục vụ khách hàng không
+        if ($product->isServing()) {
+            return redirect()->back()->with('error', "Rất tiếc! Mẫu xe '{$product->name}' hiện tại đang trong chuyến phục vụ khách hàng. Không thể đặt thuê xe lúc này!");
         }
 
         $startDate = Carbon::parse($request->start_date);

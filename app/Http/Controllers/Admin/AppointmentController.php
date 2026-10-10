@@ -11,10 +11,18 @@ class AppointmentController extends Controller
     // Danh sách toàn bộ lịch hẹn xem xe
     public function index(Request $request)
     {
-        $query = Appointment::with(['product', 'user']);
+        $query = Appointment::with(['product.category', 'user', 'partner', 'order']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->filled('deal_status')) {
+            $query->where('deal_status', $request->deal_status);
+        }
+
+        if ($request->filled('partner_id')) {
+            $query->where('partner_id', $request->partner_id);
         }
 
         if ($request->filled('keyword')) {
@@ -22,13 +30,32 @@ class AppointmentController extends Controller
             $query->where(function ($q) use ($keyword) {
                 $q->where('appointment_code', 'like', "%{$keyword}%")
                     ->orWhere('customer_name', 'like', "%{$keyword}%")
-                    ->orWhere('customer_phone', 'like', "%{$keyword}%");
+                    ->orWhere('customer_phone', 'like', "%{$keyword}%")
+                    ->orWhere('customer_email', 'like', "%{$keyword}%")
+                    ->orWhereHas('product', function ($pq) use ($keyword) {
+                        $pq->where('name', 'like', "%{$keyword}%");
+                    })
+                    ->orWhereHas('partner', function ($prtq) use ($keyword) {
+                        $prtq->where('name', 'like', "%{$keyword}%")
+                            ->orWhere('partner_showroom_name', 'like', "%{$keyword}%");
+                    });
             });
         }
 
         $appointments = $query->orderBy('appointment_date', 'desc')->orderBy('id', 'desc')->paginate(15)->withQueryString();
 
-        return view('admin.appointments.index', compact('appointments'));
+        $stats = [
+            'total' => Appointment::count(),
+            'pending' => Appointment::where('status', 'pending')->count(),
+            'confirmed' => Appointment::where('status', 'confirmed')->count(),
+            'completed' => Appointment::where('status', 'completed')->count(),
+            'deal_won' => Appointment::where('deal_status', 'deal_won')->count(),
+            'deal_lost' => Appointment::where('deal_status', 'deal_lost')->count(),
+        ];
+
+        $partners = \App\Models\User::where('role', 'partner')->orderBy('name')->get();
+
+        return view('admin.appointments.index', compact('appointments', 'stats', 'partners'));
     }
 
     // Chi tiết lịch hẹn
@@ -73,6 +100,36 @@ class AppointmentController extends Controller
             'commission_status' => $request->input('commission_status', $appointment->commission_status ?: 'pending'),
             'admin_note' => $request->admin_note,
         ]);
+
+        if ($dealStatus === 'deal_won') {
+            $appointment->product?->update([
+                'rental_status' => 'sold',
+                'quantity' => 0,
+            ]);
+
+            // Đồng bộ Đơn mua xe (Order)
+            $paymentMethod = $request->input('payment_method', 'bank_transfer');
+            \App\Models\Order::syncFromAppointment($appointment, $paymentMethod, 'paid');
+        } elseif ($dealStatus === 'deal_lost' || $request->status === 'cancelled') {
+            $existingOrder = \App\Models\Order::where('appointment_id', $appointment->id)->first();
+            if ($existingOrder) {
+                $existingOrder->update(['order_status' => 'cancelled']);
+            }
+
+            if ($appointment->product && $appointment->product->rental_status === 'sold') {
+                $hasOtherPaidWon = Appointment::where('product_id', $appointment->product_id)
+                    ->where('id', '!=', $appointment->id)
+                    ->where('deal_status', 'deal_won')
+                    ->where('commission_status', 'paid')
+                    ->exists();
+                if (!$hasOtherPaidWon) {
+                    $appointment->product->update([
+                        'rental_status' => 'available',
+                        'quantity' => 1,
+                    ]);
+                }
+            }
+        }
 
         return redirect()->back()->with('success', 'Đã cập nhật trạng thái lịch hẹn & hoa hồng giới thiệu mua xe thành công!');
     }
