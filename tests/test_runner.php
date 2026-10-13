@@ -241,30 +241,15 @@ runTest("TC_11_Sepay_Webhook_Security", function() use ($kernel) {
     return ['status' => 'FAIL', 'note' => "LO HONG BAO MAT: Webhook SePay chap nhan request khong hop le (Status tra ve: $status)"];
 });
 
-// Test 12: MoMo IPN Callback Security
-runTest("TC_12_MoMo_IPN_Signature_Verification", function() use ($kernel) {
-    $req = Request::create('/payment/momo/ipn', 'POST', [
-        'partnerCode' => 'MOMO',
-        'orderId' => 'ORD_TEST_9999',
-        'requestId' => 'REQ_9999',
-        'amount' => 5000000,
-        'orderInfo' => 'Test fake momo',
-        'orderType' => 'momo_wallet',
-        'transId' => '1234567890',
-        'resultCode' => 0,
-        'message' => 'Successful.',
-        'payType' => 'qr',
-        'responseTime' => time(),
-        'extraData' => '',
-        'signature' => 'invalid_fake_signature_hash'
-    ]);
+// Test 12: MoMo Gateway Deprecation / Safe 404 Check
+runTest("TC_12_MoMo_Decommissioned_Safe_404", function() use ($kernel) {
+    $req = Request::create('/payment/momo/ipn', 'POST', ['partnerCode' => 'MOMO']);
     $res = $kernel->handle($req);
     $status = $res->getStatusCode();
-    $content = $res->getContent();
-    if ($status === 400 || $status === 403 || str_contains($content, 'Invalid signature') || str_contains($content, 'khong hop le')) {
-        return ['status' => 'PASS', 'note' => "MoMo IPN tu choi chu ky gia mao signature (Status: $status)"];
+    if ($status === 404) {
+        return ['status' => 'PASS', 'note' => "Cổng MoMo đã được gỡ bỏ hoàn toàn an toàn (HTTP 404 Not Found)"];
     }
-    return ['status' => 'FAIL', 'note' => "CANH BAO BAO MAT: MoMo IPN khong chan chu ky sai! Status: $status, Response: " . substr($content, 0, 100)];
+    return ['status' => 'FAIL', 'note' => "Cổng MoMo chưa được gỡ bỏ, mã phản hồi: $status"];
 });
 
 // Test 13: Admin phan quyen Toggle Role

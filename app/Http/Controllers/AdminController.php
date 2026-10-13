@@ -27,15 +27,21 @@ class AdminController extends Controller
         $activeRentals = Rental::whereIn('rental_status', ['confirmed', 'in_progress'])->count();
         $totalRentalRevenue = Rental::whereIn('payment_status', ['deposit_paid', 'fully_paid'])->sum('total_rental_fee');
 
-        // 3. Thống kê Đơn mua xe & Thanh toán MoMo
+        // 3. Thống kê Đơn mua xe & Thanh toán Trực tuyến SePay VietQR
         $totalOrders = Order::count();
         $pendingOrders = Order::where('order_status', 'pending')->count();
         $totalOrderRevenue = Order::where('payment_status', 'paid')->sum('total_amount');
 
-        $totalMomoRevenue = PaymentTransaction::where('gateway', 'momo')->where('status', 'paid')->sum('amount');
-        $totalMomoCount = PaymentTransaction::where('gateway', 'momo')->count();
-        $totalMomoSuccess = PaymentTransaction::where('gateway', 'momo')->where('status', 'paid')->count();
-        $latestMomoTransactions = PaymentTransaction::with(['order', 'rental'])->orderBy('id', 'desc')->take(5)->get();
+        $totalSepayRevenue = PaymentTransaction::whereIn('gateway', ['sepay', 'momo'])->where('status', 'paid')->sum('amount');
+        $totalSepayCount = PaymentTransaction::whereIn('gateway', ['sepay', 'momo'])->count();
+        $totalSepaySuccess = PaymentTransaction::whereIn('gateway', ['sepay', 'momo'])->where('status', 'paid')->count();
+        $latestSepayTransactions = PaymentTransaction::with(['order', 'rental'])->orderBy('id', 'desc')->take(5)->get();
+
+        // Giữ tương thích ngược biến
+        $totalMomoRevenue = $totalSepayRevenue;
+        $totalMomoCount = $totalSepayCount;
+        $totalMomoSuccess = $totalSepaySuccess;
+        $latestMomoTransactions = $latestSepayTransactions;
 
         // 4. Thống kê xe & người dùng
         $totalProducts = Product::count();
@@ -59,6 +65,10 @@ class AdminController extends Controller
             'totalOrders',
             'pendingOrders',
             'totalOrderRevenue',
+            'totalSepayRevenue',
+            'totalSepayCount',
+            'totalSepaySuccess',
+            'latestSepayTransactions',
             'totalMomoRevenue',
             'totalMomoCount',
             'totalMomoSuccess',

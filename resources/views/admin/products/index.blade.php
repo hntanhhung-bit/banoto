@@ -10,16 +10,13 @@
             <p class="text-muted small mb-0">Kiểm tra thông tin biển số, năm sản xuất, tình trạng kỹ thuật & đăng kiểm trước khi cấp phép xe của đối tác hiển thị trên sàn.</p>
         </div>
         <div>
-            <a class="btn btn-success font-weight-bold" href="{{ route('admin.products.create') }}">
-                <i class="fa fa-plus"></i> Đăng xe mới
-            </a>
-            <a class="btn btn-secondary font-weight-bold ml-2" href="{{ route('admin.categories.index') }}">
-                <i class="fa fa-tags"></i> Quản lý Danh mục
+            <a class="btn btn-secondary font-weight-bold" href="{{ route('admin.categories.index') }}">
+                <i class="fa fa-tags"></i> Quản lý Danh mục (Hãng xe)
             </a>
         </div>
     </div>
 
-    <!-- TABS PHÂN LOẠI NGUỒN XE & TRẠNG THÁI DUYỆT -->
+    <!-- TABS PHÂN LOẠI TRẠNG THÁI KIỂM ĐỊNH & DUYỆT XE ĐỐI TÁC -->
     <ul class="nav nav-pills mb-3">
         <li class="nav-item">
             <a class="nav-link font-weight-bold {{ (!request('filter') || request('filter') == 'all') ? 'active bg-dark' : 'bg-white text-dark border shadow-sm' }}" 
@@ -30,22 +27,22 @@
         <li class="nav-item ml-2">
             <a class="nav-link font-weight-bold {{ request('filter') == 'pending_approval' ? 'active bg-warning text-dark' : 'bg-white text-warning border shadow-sm' }}" 
                href="{{ route('admin.products.index', ['filter' => 'pending_approval']) }}">
-                <i class="fa fa-clock-o text-danger mr-1"></i> Xe đối tác chờ kiểm định & duyệt ({{ $countPendingCars }})
+                <i class="fa fa-clock-o text-danger mr-1"></i> Xe chờ kiểm định & duyệt ({{ $countPendingCars }})
                 @if($countPendingCars > 0)
                     <span class="badge badge-danger ml-1">{{ $countPendingCars }}</span>
                 @endif
             </a>
         </li>
         <li class="nav-item ml-2">
-            <a class="nav-link font-weight-bold {{ request('filter') == 'partner_cars' ? 'active bg-info' : 'bg-white text-info border shadow-sm' }}" 
-               href="{{ route('admin.products.index', ['filter' => 'partner_cars']) }}">
-                <i class="fa fa-building-o mr-1"></i> Xe của Đối tác ({{ $countPartnerCars }})
+            <a class="nav-link font-weight-bold {{ (request('filter') == 'approved_cars' || request('filter') == 'partner_cars') ? 'active bg-success' : 'bg-white text-success border shadow-sm' }}" 
+               href="{{ route('admin.products.index', ['filter' => 'approved_cars']) }}">
+                <i class="fa fa-check-circle mr-1"></i> Xe đã phê duyệt ({{ $countApprovedCars ?? $countPartnerCars }})
             </a>
         </li>
         <li class="nav-item ml-2">
-            <a class="nav-link font-weight-bold {{ request('filter') == 'admin_cars' ? 'active bg-primary' : 'bg-white text-primary border shadow-sm' }}" 
-               href="{{ route('admin.products.index', ['filter' => 'admin_cars']) }}">
-                <i class="fa fa-shield mr-1"></i> Xe trực thuộc Sàn ({{ $countAdminCars }})
+            <a class="nav-link font-weight-bold {{ request('filter') == 'rejected_cars' ? 'active bg-danger text-white' : 'bg-white text-danger border shadow-sm' }}" 
+               href="{{ route('admin.products.index', ['filter' => 'rejected_cars']) }}">
+                <i class="fa fa-ban mr-1"></i> Xe bị từ chối ({{ $countRejectedCars ?? 0 }})
             </a>
         </li>
     </ul>
@@ -256,14 +253,13 @@
                                 @endif
                             @endif
 
-                            <!-- CÁC NÚT XEM, SỬA, XÓA TIÊU CHUẨN -->
+                            <!-- CÁC NÚT XEM CHI TIẾT & XÓA XE -->
                             <div class="mt-1">
-                                <a class="btn btn-info btn-sm text-white" href="{{ route('admin.products.show', $product->id) }}" title="Xem chi tiết"><i class="fa fa-eye"></i></a>
-                                <a class="btn btn-primary btn-sm text-white" href="{{ route('admin.products.edit', $product->id) }}" title="Sửa"><i class="fa fa-edit"></i></a>
+                                <a class="btn btn-info btn-sm text-white" href="{{ route('admin.products.show', $product->id) }}" title="Xem chi tiết kiểm định"><i class="fa fa-eye"></i></a>
                                 <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa chiếc xe này không?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm" title="Xóa"><i class="fa fa-trash"></i></button>
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Xóa xe vi phạm"><i class="fa fa-trash"></i></button>
                                 </form>
                             </div>
 

@@ -70,6 +70,11 @@ class RentalController extends Controller
     // Cập nhật trạng thái thuê xe, thanh toán & gán tài xế
     public function updateStatus(Request $request, Rental $rental)
     {
+        // Khóa không cho phép thay đổi trạng thái nếu hợp đồng đã hoàn tất nghiệm thu và hoàn cọc
+        if ($rental->refund_status === 'refunded') {
+            return redirect()->back()->with('error', '⛔ Hợp đồng này đã hoàn tất nghiệm thu và đã hoàn cọc cho khách hàng. Trạng thái hợp đồng đã được khóa cố định, không thể thay đổi.');
+        }
+
         $request->validate([
             'rental_status' => 'required|in:pending,confirmed,in_progress,returned,cancelled',
             'payment_status' => 'required|in:unpaid,deposit_paid,fully_paid',
@@ -139,6 +144,11 @@ class RentalController extends Controller
     // Xử lý Hoàn cọc Ký quỹ cho khách hàng (Admin Escrow Refund)
     public function refund(Request $request, Rental $rental)
     {
+        // Khóa không cho phép hoàn cọc lại nếu đã hoàn cọc hoàn tất
+        if ($rental->refund_status === 'refunded') {
+            return redirect()->back()->with('warning', 'Hợp đồng này đã được hoàn tất thủ tục hoàn cọc trước đó.');
+        }
+
         // QUY TẮC BẮT BUỘC: Chỉ xác nhận hoàn cọc khi đối tác (partner) đã thanh toán 10% phí hoa hồng sàn
         if ($rental->partner_id && $rental->partner_commission_status !== 'paid') {
             $fee = (int) ($rental->partner_commission_fee ?: round(($rental->total_rental_fee + $rental->total_driver_fee) * 0.10));
@@ -169,15 +179,19 @@ class RentalController extends Controller
         // Giải phóng trạng thái xe nếu chưa mở
         $rental->product?->update(['rental_status' => 'available']);
 
-        PaymentTransaction::create([
-            'rental_id' => $rental->id,
-            'gateway' => 'admin_escrow_refund',
-            'gateway_order_id' => 'ADMIN_REFUND_' . $rental->rental_code,
-            'amount' => $refundAmount,
-            'status' => 'success',
-            'message' => "Admin Sàn AutoCar đã thực hiện chuyển khoản hoàn cọc " . number_format($refundAmount) . "đ cho khách hàng {$rental->customer_name} vào TK {$rental->refund_account_number} ({$rental->refund_bank_name} - {$rental->refund_account_holder}). Giữ lại: " . number_format($holdingFee) . "đ." . ($refundNotes ? " Ghi chú: {$refundNotes}" : ''),
-            'paid_at' => now(),
-        ]);
+        PaymentTransaction::updateOrCreate(
+            [
+                'gateway' => 'admin_escrow_refund',
+                'gateway_order_id' => 'ADMIN_REFUND_' . $rental->rental_code,
+            ],
+            [
+                'rental_id' => $rental->id,
+                'amount' => $refundAmount,
+                'status' => 'success',
+                'message' => "Admin Sàn AutoCar đã thực hiện chuyển khoản hoàn cọc " . number_format($refundAmount) . "đ cho khách hàng {$rental->customer_name} vào TK {$rental->refund_account_number} ({$rental->refund_bank_name} - {$rental->refund_account_holder}). Giữ lại: " . number_format($holdingFee) . "đ." . ($refundNotes ? " Ghi chú: {$refundNotes}" : ''),
+                'paid_at' => now(),
+            ]
+        );
 
         return redirect()->back()->with('success', '✅ Đã hoàn tất thanh toán hoàn cọc ' . number_format($refundAmount) . 'đ cho khách hàng thành công!');
     }
@@ -205,7 +219,13 @@ class RentalController extends Controller
         }
 
         $rentals = Rental::whereIn('id', $request->rental_ids)->get();
+        $count = 0;
         foreach ($rentals as $rental) {
+            // Không cho phép thay đổi trạng thái nếu hợp đồng đã hoàn tất nghiệm thu và hoàn cọc
+            if ($rental->refund_status === 'refunded') {
+                continue;
+            }
+
             $dataToSave = $updateData;
             if (isset($updateData['payment_status']) && in_array($updateData['payment_status'], ['deposit_paid', 'fully_paid']) && empty($rental->handover_code)) {
                 $dataToSave['handover_code'] = (string) rand(100000, 999999);
@@ -219,9 +239,14 @@ class RentalController extends Controller
                     $rental->product?->update(['rental_status' => 'available']);
                 }
             }
+            $count++;
         }
 
-        return redirect()->back()->with('success', 'Đã cập nhật trạng thái thành công cho ' . count($request->rental_ids) . ' đơn thuê xe được chọn!');
+        if ($count === 0) {
+            return redirect()->back()->with('warning', '⚠️ Không có hợp đồng nào được cập nhật do các hợp đồng đã chọn đều đã hoàn tất và khóa trạng thái.');
+        }
+
+        return redirect()->back()->with('success', 'Đã cập nhật trạng thái thành công cho ' . $count . ' đơn thuê xe được chọn!');
     }
 
     // Xóa đơn thuê xe

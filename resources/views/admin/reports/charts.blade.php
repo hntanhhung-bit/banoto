@@ -15,7 +15,7 @@
                 <i class="fa fa-bar-chart text-primary mr-2"></i> BIỂU ĐỒ BÁO CÁO DOANH THU (CHART.JS)
             </h3>
             <p class="text-muted small mb-0">
-                Dữ liệu trực quan hóa đồng bộ từ sổ nhật ký thanh toán thực nhận (MoMo & VietQR), chỉ tính các giao dịch đã hoàn tất thành công.
+                Dữ liệu trực quan hóa đồng bộ từ sổ nhật ký thanh toán thực nhận (SePay VietQR & Showroom), chỉ tính các giao dịch đã hoàn tất thành công.
             </p>
         </div>
         <div>
@@ -57,15 +57,15 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card stat-card bg-white p-3 border-left h-100 shadow-sm" style="border-left: 5px solid #a50064 !important; border-radius: 10px;">
+            <div class="card stat-card bg-white p-3 border-left h-100 shadow-sm" style="border-left: 5px solid #005fb7 !important; border-radius: 10px;">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <span class="text-muted small font-weight-bold text-uppercase">Doanh thu qua MoMo</span>
-                        <div class="h3 font-weight-bold mb-0 mt-1" style="color: #a50064;">{{ number_format($totalMomoRevenue ?? 0, 0, ',', '.') }} đ</div>
-                        <small class="text-muted">Giao dịch quét mã MoMo ATM/QR</small>
+                        <span class="text-muted small font-weight-bold text-uppercase">Doanh thu SePay VietQR</span>
+                        <div class="h3 font-weight-bold mb-0 mt-1" style="color: #005fb7;">{{ number_format($totalSepayRevenue ?? $totalMomoRevenue ?? 0, 0, ',', '.') }} đ</div>
+                        <small class="text-muted">Giao dịch quét mã SePay QR</small>
                     </div>
-                    <div class="rounded-circle p-3" style="background-color: #fdf2f8; color: #a50064;">
-                        <i class="fa fa-mobile-phone fa-2x"></i>
+                    <div class="rounded-circle p-3" style="background-color: #f0f7ff; color: #005fb7;">
+                        <i class="fa fa-qrcode fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -169,7 +169,7 @@
         <div class="col-lg-12 mb-4">
             <div class="card shadow-sm border-0 rounded-lg">
                 <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                    <span class="font-weight-bold text-dark"><i class="fa fa-pie-chart text-danger mr-1"></i> Tỷ trọng Doanh thu theo Cổng thanh toán (MoMo vs Ngân hàng vs Tiền mặt)</span>
+                    <span class="font-weight-bold text-dark"><i class="fa fa-pie-chart text-danger mr-1"></i> Tỷ trọng Doanh thu theo Cổng thanh toán (SePay VietQR vs Ngân hàng vs Tiền mặt)</span>
                     <span class="badge badge-light border text-muted">Tròn (Pie)</span>
                 </div>
                 <div class="card-body chart-wrap" style="height: 380px;">
@@ -391,7 +391,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Doanh thu (VNĐ)',
                     data: payRevenue,
-                    backgroundColor: ['#a50064', '#0284c7', '#64748b'],
+                    backgroundColor: ['#005fb7', '#0284c7', '#64748b'],
                     borderWidth: 2,
                     borderColor: '#ffffff'
                 }]

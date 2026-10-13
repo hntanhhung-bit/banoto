@@ -51,7 +51,7 @@
         <div class="small">
             <strong class="text-dark" style="font-size: 13px;">QUY ĐỊNH QUẢN TRỊ TRẠNG THÁI & THANH TOÁN HOA HỒNG SÀN:</strong>
             <ul class="mb-0 pl-3 mt-1">
-                <li><strong>Khách mua xe thành công:</strong> Nhà xe phải thanh toán đúng <strong>1% giá trị xe</strong> cho Ban Quản Trị Sàn qua cổng <strong>VietQR SePay</strong> hoặc <strong>Ví MoMo</strong>. Sau khi hoàn tất nộp hoa hồng, hồ sơ giao dịch sẽ được <strong>KHÓA VĨNH VIỄN</strong> (không thể chỉnh sửa hay hủy).</li>
+                <li><strong>Khách mua xe thành công:</strong> Nhà xe phải thanh toán đúng <strong>1% giá trị xe</strong> cho Ban Quản Trị Sàn qua cổng <strong>VietQR SePay</strong>. Sau khi hoàn tất nộp hoa hồng, hồ sơ giao dịch sẽ được <strong>KHÓA VĨNH VIỄN</strong> (không thể chỉnh sửa hay hủy).</li>
                 <li><strong>Khách không mua / Hủy lịch hẹn:</strong> Khi chuyển sang trạng thái <strong>Hủy mua</strong>, hệ thống sẽ <strong>KHÓA VĨNH VIỄN</strong> lịch hẹn đó để đảm bảo tính minh bạch, không cho phép phục hồi hoặc chuyển đổi trạng thái nữa.</li>
             </ul>
         </div>
@@ -345,7 +345,7 @@
                                         @endif
                                     </div>
 
-                                {{-- TRƯỜNG HỢP 3: CHỌN KHÁCH ĐÃ MUA XE NHƯNG CHƯA NỘP 1% HOA HỒNG -> BẢNG THANH TOÁN QR SEPAY & MOMO --}}
+                                {{-- TRƯỜNG HỢP 3: CHỌN KHÁCH ĐÃ MUA XE NHƯNG CHƯA NỘP 1% HOA HỒNG -> BẢNG THANH TOÁN QR SEPAY --}}
                                 @elseif($app->deal_status === 'deal_won' && !$isPaid)
                                     <div class="card border-danger shadow-sm">
                                         <div class="card-header bg-danger text-white py-2 px-3 d-flex justify-content-between align-items-center">
@@ -356,39 +356,19 @@
                                         </div>
                                         <div class="card-body p-3 bg-white">
                                             <div class="small text-muted mb-2">
-                                                Khách đã đồng ý mua xe! Nhà xe vui lòng chuyển khoản thanh toán đúng <strong>1% hoa hồng Sàn ({{ number_format($commissionAmount) }} VNĐ)</strong> qua một trong các cổng sau để hoàn tất và khóa hồ sơ:
+                                                Khách đã đồng ý mua xe! Nhà xe vui lòng chuyển khoản thanh toán đúng <strong>1% hoa hồng Sàn ({{ number_format($commissionAmount) }} VNĐ)</strong> qua cổng VietQR SePay để hoàn tất và khóa hồ sơ:
                                             </div>
 
-                                            <div class="row no-gutters mb-2">
-                                                <!-- CỔNG 1: Quét mã VietQR SePay -->
-                                                <div class="col-12 mb-2">
-                                                    <button type="button" 
-                                                            class="btn btn-primary btn-sm btn-block font-weight-bold text-left d-flex justify-content-between align-items-center shadow-sm py-2"
-                                                            data-toggle="modal" 
-                                                            data-target="#sepayModal{{ $app->id }}"
-                                                            onclick="startSepayPolling('{{ $app->appointment_code }}', {{ $app->id }})">
-                                                        <span><i class="fa fa-qrcode mr-2 fa-lg"></i> Quét mã VietQR SePay (TPBank)</span>
-                                                        <span class="badge badge-light text-primary font-weight-bold">Tự động nhận diện <i class="fa fa-arrow-right ml-1"></i></span>
-                                                    </button>
-                                                </div>
-
-                                                <!-- CỔNG 2: Ví MoMo Test -->
-                                                <div class="col-sm-6 pr-sm-1 mb-2 mb-sm-0">
-                                                    <a href="{{ route('partner.appointments.payCommissionMomo', ['appointment' => $app->id, 'type' => 'captureWallet']) }}"
-                                                       class="btn btn-sm btn-block font-weight-bold text-white shadow-sm py-2"
-                                                       style="background-color: #a50064; border-color: #a50064; font-size: 11px;">
-                                                        <i class="fa fa-mobile fa-lg mr-1"></i> Ví MoMo Test (QR)
-                                                    </a>
-                                                </div>
-
-                                                <!-- CỔNG 3: Thẻ ATM Napas qua MoMo -->
-                                                <div class="col-sm-6 pl-sm-1">
-                                                    <a href="{{ route('partner.appointments.payCommissionMomo', ['appointment' => $app->id, 'type' => 'payWithATM']) }}"
-                                                       class="btn btn-sm btn-block btn-outline-secondary font-weight-bold shadow-sm py-2"
-                                                       style="font-size: 11px;">
-                                                        <i class="fa fa-credit-card mr-1"></i> Thẻ ATM Napas
-                                                    </a>
-                                                </div>
+                                            <div class="mb-2">
+                                                <!-- CỔNG: Quét mã VietQR SePay -->
+                                                <button type="button" 
+                                                        class="btn btn-primary btn-block font-weight-bold text-left d-flex justify-content-between align-items-center shadow-sm py-2"
+                                                        data-toggle="modal" 
+                                                        data-target="#sepayModal{{ $app->id }}"
+                                                        onclick="startSepayPolling('{{ $app->appointment_code }}', {{ $app->id }})">
+                                                    <span><i class="fa fa-qrcode mr-2 fa-lg"></i> Quét mã VietQR SePay (TPBank)</span>
+                                                    <span class="badge badge-light text-primary font-weight-bold">Tự động nhận diện <i class="fa fa-arrow-right ml-1"></i></span>
+                                                </button>
                                             </div>
 
                                             <!-- NHẬP MÃ XÁC NHẬN CHUYỂN KHOẢN NGÂN HÀNG THỦ CÔNG -->
@@ -477,8 +457,7 @@
                                                 <div class="mt-2 pt-2 border-top">
                                                     <label class="small font-weight-bold text-dark mb-1"><i class="fa fa-credit-card text-primary"></i> Khách thanh toán bằng gì:</label>
                                                     <select name="payment_method" class="form-control form-control-sm font-weight-bold">
-                                                        <option value="bank_transfer">Chuyển khoản VietQR</option>
-                                                        <option value="momo">Ví MoMo</option>
+                                                        <option value="bank_transfer">Chuyển khoản VietQR SePay</option>
                                                         <option value="showroom">Thanh toán tại Showroom / Tiền mặt</option>
                                                     </select>
                                                 </div>
@@ -716,8 +695,8 @@
 
             var msg = "🏆 XÁC NHẬN KHÁCH ĐÃ ĐỒNG Ý MUA XE:\n\n" +
                       "Giá bán chốt: " + new Intl.NumberFormat('vi-VN').format(priceVal) + " VNĐ\n" +
-                      "Hoa hồng sàn thu 1%: " + commText + " VNĐ\n\n" +
-                      "Nhà xe cần thanh toán 1% hoa hồng này qua VietQR SePay hoặc MoMo. Sau khi nộp hoa hồng xong, hồ sơ sẽ được KHÓA HOÀN TẤT.\n\n" +
+                       "Hoa hồng sàn thu 1%: " + commText + " VNĐ\n\n" +
+                      "Nhà xe cần thanh toán 1% hoa hồng này qua VietQR SePay. Sau khi nộp hoa hồng xong, hồ sơ sẽ được KHÓA HOÀN TẤT.\n\n" +
                       "Bấm OK để tiếp tục mở bước nộp hoa hồng?";
             return confirm(msg);
         }

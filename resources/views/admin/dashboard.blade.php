@@ -30,11 +30,11 @@
             <h3 class="font-weight-bold text-dark mb-1">
                 <i class="fa fa-tachometer text-primary mr-2"></i> BẢNG ĐIỀU KHIỂN ĐẶT LỊCH & THUÊ XE & MUA BÁN
             </h3>
-            <p class="text-muted mb-0">Xin chào, <strong>{{ Auth::user()->name }}</strong>! Hệ thống quản lý bán xe, thanh toán MoMo và dịch vụ thuê xe đang hoạt động ổn định.</p>
+            <p class="text-muted mb-0">Xin chào, <strong>{{ Auth::user()->name }}</strong>! Hệ thống quản lý bán xe, thanh toán trực tuyến SePay và dịch vụ thuê xe đang hoạt động ổn định.</p>
         </div>
         <div>
-            <a href="{{ route('admin.payments.index') }}" class="btn font-weight-bold mr-1 text-white shadow-sm" style="background-color: #a50064;">
-                <i class="fa fa-qrcode mr-1"></i> Báo cáo MoMo & Thu chi
+            <a href="{{ route('admin.payments.index') }}" class="btn btn-primary font-weight-bold mr-1 text-white shadow-sm">
+                <i class="fa fa-qrcode mr-1"></i> Sổ GD SePay & Thu chi
             </a>
             <a href="{{ route('admin.orders.index') }}" class="btn btn-warning font-weight-bold mr-1 text-dark shadow-sm">
                 <i class="fa fa-shopping-cart mr-1"></i> Đơn mua xe
@@ -129,27 +129,27 @@
         </div>
     </div>
 
-    <!-- HÀNG THẺ KPI: THANH TOÁN MOMO & ĐƠN MUA XE SHOWROOM -->
+    <!-- HÀNG THẺ KPI: THANH TOÁN SEPAY VIETQR & ĐƠN MUA XE SHOWROOM -->
     <div class="row mb-4">
-        <!-- Thẻ MoMo Revenue -->
+        <!-- Thẻ SePay Revenue -->
         <div class="col-xl-4 col-md-6 mb-3">
-            <div class="card stat-card bg-white p-3 border-left" style="border-left: 5px solid #a50064 !important;">
+            <div class="card stat-card bg-white p-3 border-left" style="border-left: 5px solid #005fb7 !important;">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <div class="stat-icon mr-3 text-white" style="background-color: #a50064;">
+                        <div class="stat-icon mr-3 text-white" style="background-color: #005fb7;">
                             <i class="fa fa-qrcode"></i>
                         </div>
                         <div>
-                            <div class="text-muted small font-weight-bold text-uppercase">Doanh thu qua MoMo</div>
-                            <h4 class="font-weight-bold mb-0" style="color: #a50064; font-size: 20px;">
-                                {{ number_format($totalMomoRevenue) }} <small>VNĐ</small>
+                            <div class="text-muted small font-weight-bold text-uppercase">Doanh thu SePay VietQR</div>
+                            <h4 class="font-weight-bold mb-0" style="color: #005fb7; font-size: 20px;">
+                                {{ number_format($totalSepayRevenue ?? $totalMomoRevenue) }} <small>VNĐ</small>
                             </h4>
                         </div>
                     </div>
                 </div>
                 <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
-                    <span class="small font-weight-bold text-success">{{ $totalMomoSuccess }} giao dịch thành công</span>
-                    <a href="{{ route('admin.payments.index') }}" class="small font-weight-bold" style="color: #a50064;">Báo cáo MoMo &rarr;</a>
+                    <span class="small font-weight-bold text-success">{{ $totalSepaySuccess ?? $totalMomoSuccess }} giao dịch thành công</span>
+                    <a href="{{ route('admin.payments.index') }}" class="small font-weight-bold" style="color: #005fb7;">Báo cáo SePay &rarr;</a>
                 </div>
             </div>
         </div>
@@ -359,8 +359,10 @@
                                             #{{ $ord->order_code }}
                                         </a>
                                         <div class="small text-muted mt-1">
-                                            @if($ord->payment_method === 'momo')
-                                                <span class="badge text-white" style="background-color: #a50064;">MoMo</span>
+                                            @if($ord->payment_method === 'sepay')
+                                                <span class="badge text-white" style="background-color: #005fb7;">SePay QR</span>
+                                            @elseif($ord->payment_method === 'momo')
+                                                <span class="badge text-white" style="background-color: #005fb7;">SePay QR</span>
                                             @elseif($ord->payment_method === 'bank_transfer')
                                                 <span class="badge badge-info">VietQR</span>
                                             @else
@@ -395,17 +397,17 @@
             </div>
         </div>
 
-        <!-- Bảng Giao dịch MoMo mới nhất -->
+        <!-- Bảng Giao dịch SePay VietQR mới nhất -->
         <div class="col-lg-6 mb-4">
-            <div class="card border-0 shadow-sm h-100" style="border-top: 3px solid #a50064 !important;">
+            <div class="card border-0 shadow-sm h-100" style="border-top: 3px solid #005fb7 !important;">
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h5 class="font-weight-bold text-dark mb-0">
-                        <span class="badge mr-1 px-2 py-1 text-white" style="background-color: #a50064;">
-                            <i class="fa fa-qrcode mr-1"></i> MoMo
+                        <span class="badge mr-1 px-2 py-1 text-white" style="background-color: #005fb7;">
+                            <i class="fa fa-qrcode mr-1"></i> SePay QR
                         </span>
-                        Giao dịch MoMo gần nhất
+                        Giao dịch SePay VietQR gần nhất
                     </h5>
-                    <a href="{{ route('admin.payments.index') }}" class="btn btn-sm font-weight-bold text-white shadow-sm" style="background-color: #a50064;">
+                    <a href="{{ route('admin.payments.index') }}" class="btn btn-sm font-weight-bold text-white shadow-sm" style="background-color: #005fb7;">
                         Báo cáo chi tiết
                     </a>
                 </div>
@@ -421,7 +423,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($latestMomoTransactions as $tx)
+                                @forelse($latestSepayTransactions ?? $latestMomoTransactions as $tx)
                                 <tr>
                                     <td class="small text-muted">
                                         {{ $tx->created_at->format('d/m/Y H:i') }}
@@ -449,7 +451,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="4" class="text-center py-4 text-muted">Chưa có giao dịch MoMo nào phát sinh.</td>
+                                    <td colspan="4" class="text-center py-4 text-muted">Chưa có giao dịch SePay nào phát sinh.</td>
                                 </tr>
                                 @endforelse
                             </tbody>

@@ -290,9 +290,9 @@
                                                 <td class="small text-muted align-middle">
                                                     {{ $pt->created_at->format('d/m/Y H:i:s') }}</td>
                                                 <td class="align-middle">
-                                                    @if($pt->gateway === 'momo')
-                                                        <span class="badge" style="background-color: #a50064; color: #fff;">
-                                                            <i class="fa fa-qrcode mr-1"></i> MoMo
+                                                    @if($pt->gateway === 'sepay' || $pt->gateway === 'momo')
+                                                        <span class="badge" style="background-color: #005fb7; color: #fff;">
+                                                            <i class="fa fa-qrcode mr-1"></i> SePay VietQR
                                                         </span>
                                                     @elseif($pt->gateway === 'bank_transfer')
                                                         <span class="badge badge-info">VietQR</span>
@@ -503,8 +503,8 @@
                         <div class="d-flex justify-content-between mb-2 align-items-center">
                             <span class="text-muted">Phương thức thanh toán:</span>
                             <div>
-                                @if($order->payment_method === 'momo')
-                                    <span class="badge" style="background-color: #a50064; color: #fff;">Ví MoMo</span>
+                                @if($order->payment_method === 'sepay' || $order->payment_method === 'momo')
+                                    <span class="badge" style="background-color: #005fb7; color: #fff;">SePay VietQR</span>
                                 @elseif($order->payment_method === 'bank_transfer')
                                     <span class="badge badge-info">Chuyển khoản VietQR</span>
                                 @elseif($order->payment_method === 'showroom')

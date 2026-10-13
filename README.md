@@ -13,7 +13,7 @@
 ### THÀNH VIÊN NHÓM THỰC HIỆN
 | STT | Họ và tên | Mã sinh viên | Lớp | Vai trò & Nhiệm vụ chính |
 | :---: | :--- | :---: | :---: | :--- |
-| 1 | **Hoàng Ngọc Thi** | *Trưởng nhóm* | DH13C2 | Kiến trúc hệ thống, Quản trị Admin, Cổng thanh toán SePay/MoMo, Viết báo cáo tổng hợp |
+| 1 | **Hoàng Ngọc Thi** | *Trưởng nhóm* | DH13C2 | Kiến trúc hệ thống, Quản trị Admin, Cổng thanh toán SePay VietQR, Viết báo cáo tổng hợp |
 | 2 | **Nguyễn Việt Hòa** | Thành viên | DH13C2 | Phân hệ Khách hàng, Giỏ hàng & Checkout GHN Express, Xác thực OTP Email, Viết báo cáo |
 | 3 | **Nguyễn Quốc Anh** | Thành viên | DH13C2 | Đặt lịch lái thử Showroom, Dịch vụ thuê xe ô tô có tài xế/tự lái, Bàn giao cọc xe, Live Chat |
 | 4 | **Nguyễn Viết Hoàng Anh**| Thành viên | DH13C2 | Phân hệ Đối tác ký gửi Partner, Báo cáo biểu đồ doanh thu, Kiểm thử Test Cases, Tối ưu bảo mật |
@@ -28,7 +28,6 @@ Website Thương mại điện tử Bán và Cho thuê Ô tô trực tuyến là
 - **Mô hình Đối tác ký gửi (Partner Consignment):** Cá nhân hoặc doanh nghiệp có xe nhàn rỗi có thể đăng ký làm đối tác, ký gửi xe để bán hoặc cho thuê, hưởng hoa hồng minh bạch.
 - **Tích hợp dịch vụ bên thứ ba hiện đại:**
   - **Giao Hàng Nhanh (GHN Express):** Đồng bộ địa giới hành chính Việt Nam (Tỉnh/Huyện/Xã), tự động tính cước vận chuyển giao xe tận nhà.
-  - **Cổng thanh toán MoMo:** Thanh toán quét mã QR qua ví điện tử MoMo với chữ ký số bảo mật.
   - **Cổng thanh toán SePay (VietQR):** Tự động sinh mã VietQR động theo đơn hàng, nhận Webhook ngân hàng khớp tiền ngay lập tức.
   - **Google Mailer OAuth & Mailtrap:** Gửi mã xác thực OTP kích hoạt tài khoản và hóa đơn điện tử tự động.
   - **Hệ thống Chat trực tuyến:** Trao đổi, tư vấn kỹ thuật xe trực tiếp giữa Khách hàng và Showroom.
@@ -116,9 +115,9 @@ Hệ thống đã phân quyền 3 nhóm người dùng rõ rệt:
 
 | Vai trò | Email đăng nhập | Mật khẩu mặc định | Quyền hạn và phạm vi sử dụng |
 | :--- | :--- | :---: | :--- |
-| **Quản trị viên (Admin)** | `admin@gmail.com` | `123456` | Toàn quyền kiểm soát danh mục xe, đơn hàng, hợp đồng thuê xe, lịch lái thử, duyệt đối tác, đối soát SePay/MoMo, xem báo cáo doanh thu |
+| **Quản trị viên (Admin)** | `admin@gmail.com` | `123456` | Toàn quyền kiểm soát danh mục xe, đơn hàng, hợp đồng thuê xe, lịch lái thử, duyệt đối tác, đối soát SePay VietQR, xem báo cáo doanh thu |
 | **Đối tác ký gửi (Partner)**| `partner@gmail.com` | `123456` | Quản lý danh sách xe ký gửi, đăng ký cho thuê/bán xe, xem báo cáo doanh thu & hoa hồng đối tác |
-| **Khách hàng (User)** | `khachhang@gmail.com` | `123456` | Tìm kiếm, xem chi tiết xe, chọn màu sắc, đặt lịch lái thử, đặt thuê xe kèm tài xế, thanh toán VietQR / MoMo, chat tư vấn |
+| **Khách hàng (User)** | `khachhang@gmail.com` | `123456` | Tìm kiếm, xem chi tiết xe, chọn màu sắc, đặt lịch lái thử, đặt thuê xe kèm tài xế, thanh toán VietQR SePay, chat tư vấn |
 
 ---
 
@@ -129,7 +128,7 @@ Hệ thống đã phân quyền 3 nhóm người dùng rõ rệt:
    - Xem thông số kỹ thuật xe chuẩn mực, chọn màu sắc xe tương ứng.
    - Đặt lịch hẹn lái thử xe tại showroom gần nhất.
    - Thuê xe ô tô tự lái hoặc thuê có tài xế riêng, quản lý tiền cọc và phiếu voucher nhận xe.
-   - Giỏ hàng & thanh toán online tự động: MoMo QR code hoặc SePay VietQR (nhận diện tiền vào tức thì không cần can thiệp thủ công).
+   - Giỏ hàng & thanh toán online tự động: SePay VietQR tự động (nhận diện tiền vào tức thì không cần can thiệp thủ công).
    - Tích hợp vận chuyển GHN: Tính phí ship xe tận nhà theo từng địa bàn xã/huyện.
    - Tra cứu hành trình đơn hàng và lịch sử thuê xe.
    - Chat trực tiếp với tư vấn viên Showroom.
@@ -148,5 +147,5 @@ Hệ thống đã phân quyền 3 nhóm người dùng rõ rệt:
    - Quản lý lịch hẹn lái thử xe: phân công nhân viên chăm sóc, ghi nhận kết quả trải nghiệm.
    - Quản lý hợp đồng cho thuê xe: kiểm tra tình trạng xe khi xuất và nhận (Handover Security), hoàn trả tiền cọc.
    - Duyệt hồ sơ đối tác ký gửi xe và kiểm định chất lượng xe ký gửi.
-   - Quản lý đối soát giao dịch thanh toán MoMo và SePay Webhook.
+   - Quản lý đối soát giao dịch thanh toán SePay Webhook.
    - Hệ thống báo cáo thống kê và biểu đồ phân tích trực quan.

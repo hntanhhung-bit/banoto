@@ -19,7 +19,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->validateCsrfTokens(except: [
-            'payment/momo/ipn',
             'payment/sepay/webhook',
             'ghn/webhook',
             'login',

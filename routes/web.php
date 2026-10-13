@@ -138,17 +138,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/checkout/success/{order_code}', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/my-orders', [CheckoutController::class, 'myOrders'])->name('orders.my');
 
-    // Route alias theo Lab 05 & MoMo
+    // Route alias Checkout & Orders
     Route::get('/payment', [CheckoutController::class, 'showCheckout'])->name('payment.index');
     Route::post('/payment/process', [CheckoutController::class, 'processCheckout'])->name('payment.process');
     Route::get('/orders', [CheckoutController::class, 'myOrders'])->name('orders.index');
     Route::get('/orders/{order}', [\App\Http\Controllers\User\OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{order}/cancel', [\App\Http\Controllers\User\OrderController::class, 'cancel'])->name('orders.cancel');
 
-    // MoMo Start & Pay Again
-    Route::get('/orders/{order}/start-momo', [\App\Http\Controllers\User\MomoController::class, 'start'])->name('orders.momo.start');
-    Route::get('/orders/{order}/pay/momo', [\App\Http\Controllers\User\MomoController::class, 'payAgain'])->name('orders.momo.pay');
-    Route::get('/rentals/{rental}/pay/momo', [\App\Http\Controllers\User\MomoController::class, 'payRental'])->name('rentals.momo.pay');
+
 
     // SePay QR Payment (Ngân hàng tự động)
     Route::get('/orders/{order}/pay/sepay', [\App\Http\Controllers\User\SepayController::class, 'payOrder'])->name('orders.sepay.pay');
@@ -173,9 +170,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-// ================= MOMO WEBHOOKS & CALLBACKS (KHÔNG DÙNG AUTH) =================
-Route::post('/payment/momo/ipn', [\App\Http\Controllers\User\MomoController::class, 'ipn'])->name('payment.momo.ipn');
-Route::get('/payment/momo/callback', [\App\Http\Controllers\User\MomoController::class, 'callback'])->name('user.payment.momo.callback');
+
 
 // ================= SEPAY WEBHOOKS & POLLING CHECK (KHÔNG DÙNG AUTH) =================
 Route::get('/payment/sepay/check/{type}/{code}', [\App\Http\Controllers\User\SepayController::class, 'checkStatus'])->name('sepay.check');
@@ -211,7 +206,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::patch('/admin/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('admin.orders.updateStatus');
     Route::delete('/admin/orders/{order}', [OrderController::class, 'destroy'])->name('admin.orders.destroy');
 
-    // Quản lý Giao dịch & Báo cáo Thanh toán MoMo / Payment Transactions
+    // Quản lý Giao dịch & Báo cáo Thanh toán SePay VietQR / Payment Transactions
     Route::get('/admin/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('admin.payments.index');
 
     // Quản lý Lịch hẹn xem xe
@@ -283,7 +278,6 @@ Route::middleware(['auth', 'partner'])->prefix('partner')->name('partner.')->gro
 
     Route::get('/appointments', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'appointments'])->name('appointments');
     Route::patch('/appointments/{appointment}/status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'updateAppointmentStatus'])->name('appointments.updateStatus');
-    Route::get('/appointments/{appointment}/pay-commission-momo', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'payAppointmentCommissionMomo'])->name('appointments.payCommissionMomo');
     Route::post('/appointments/{appointment}/confirm-commission', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'confirmAppointmentCommission'])->name('appointments.confirmCommission');
 
     Route::get('/rentals', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'rentals'])->name('rentals');
@@ -292,7 +286,6 @@ Route::middleware(['auth', 'partner'])->prefix('partner')->name('partner.')->gro
     Route::patch('/rentals/{rental}/status', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'updateRentalStatus'])->name('rentals.updateStatus');
     Route::post('/rentals/{rental}/verify-handover', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'verifyHandover'])->name('rentals.verifyHandover');
     Route::post('/rentals/{rental}/refund', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'refund'])->name('rentals.refund');
-    Route::get('/rentals/{rental}/pay-commission-momo', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'payCommissionMomo'])->name('rentals.payCommissionMomo');
 
     Route::get('/payouts', [\App\Http\Controllers\Partner\PartnerDashboardController::class, 'payouts'])->name('payouts');
 

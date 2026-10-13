@@ -413,7 +413,7 @@
                                     </div>
                                 </div>
                                 <p class="small text-muted mb-2">
-                                    Nếu khách hàng thanh toán trễ qua MoMo hoặc chuyển khoản ngân hàng ngoài giờ, Admin có quyền bấm xác nhận để hệ thống cấp ngay mã OTP đối chiếu 6 số cho khách tránh mất tiền.
+                                    Nếu khách hàng thanh toán trễ qua SePay hoặc chuyển khoản ngân hàng ngoài giờ, Admin có quyền bấm xác nhận để hệ thống cấp ngay mã OTP đối chiếu 6 số cho khách tránh mất tiền.
                                 </p>
                                 <form action="{{ route('admin.rentals.confirmDeposit', $rental->id) }}" method="POST"
                                     onsubmit="return confirm('HỎI LẠI ĐỂ XÁC NHẬN:\n\nBạn có chắc chắn tài khoản ngân hàng của Sàn đã nhận được đủ số tiền cọc {{ number_format($rental->deposit_amount) }} VNĐ từ khách hàng {{ $rental->customer_name }}?\n\nSau khi xác nhận, hệ thống sẽ ghi nhận trạng thái: ĐÃ NHẬN ĐƯỢC CỌC và kích hoạt mã OTP đối chiếu nhận xe cho khách.') && confirm('XÁC NHẬN LẦN CUỐI: Bạn chắc chắn 100% đã nhận được tiền cọc vào tài khoản?');">
@@ -426,55 +426,91 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('admin.rentals.updateStatus', $rental->id) }}" method="POST">
-                        @csrf
-                        @method('PATCH')
-
-                        <!-- Gán tài xế nếu là loại thuê có tài xế -->
-                        @if($rental->rental_type === 'with_driver')
-                            <div class="p-3 bg-light rounded border mb-3">
-                                <h6 class="font-weight-bold text-primary mb-2"><i class="fa fa-id-card-o mr-1"></i> Thông tin tài xế phục vụ:</h6>
-                                <div class="form-group mb-2">
-                                    <label class="font-weight-bold small text-muted">Họ tên tài xế:</label>
-                                    <input type="text" name="driver_name" value="{{ $rental->driver_name }}" class="form-control form-control-sm" placeholder="VD: Nguyễn Văn Tài">
+                    @if($rental->refund_status === 'refunded')
+                        <div class="alert alert-success border-success text-center p-3 mb-0 shadow-sm" style="background-color: #f4fbf6; border-width: 2px;">
+                            <div class="font-weight-bold text-success mb-2" style="font-size: 15px;">
+                                <i class="fa fa-lock mr-1"></i> HỢP ĐỒNG ĐÃ HOÀN TẤT & KHÓA
+                            </div>
+                            <p class="small text-muted mb-3 text-justify">
+                                Biên bản nghiệm thu xe và thủ tục hoàn cọc ký quỹ Escrow đã hoàn tất thành công. Trạng thái hợp đồng đã được khóa cố định để đảm bảo tính toàn vẹn dữ liệu kế toán và đối soát sàn.
+                            </p>
+                            <div class="p-2 bg-white rounded border mb-2 text-left">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="text-muted">Trạng thái xe:</span>
+                                    <strong class="text-success"><i class="fa fa-check-circle"></i> Đã trả về showroom / kho</strong>
                                 </div>
-                                <div class="form-group mb-0">
-                                    <label class="font-weight-bold small text-muted">Số điện thoại tài xế:</label>
-                                    <input type="tel" name="driver_phone" value="{{ $rental->driver_phone }}" class="form-control form-control-sm" placeholder="VD: 0988xxxxxx">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="text-muted">Hoàn cọc Escrow:</span>
+                                    <strong class="text-success"><i class="fa fa-check-circle"></i> Đã hoàn {{ number_format($rental->refund_amount) }} đ</strong>
+                                </div>
+                                @if($rental->refund_holding_fee > 0)
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="text-muted">Phí giữ lại:</span>
+                                        <strong class="text-danger">{{ number_format($rental->refund_holding_fee) }} đ</strong>
+                                    </div>
+                                @endif
+                                <div class="d-flex justify-content-between small border-top pt-1">
+                                    <span class="text-muted">Thời điểm hoàn tất:</span>
+                                    <span class="text-muted">{{ $rental->refunded_at ? $rental->refunded_at->format('d/m/Y H:i') : 'Đã duyệt' }}</span>
                                 </div>
                             </div>
-                        @endif
-
-                        <div class="form-group mb-3">
-                            <label class="font-weight-bold small text-muted">Trạng thái hợp đồng thuê xe:</label>
-                            <select name="rental_status" class="form-control font-weight-bold" style="height: 42px;">
-                                <option value="pending" {{ $rental->rental_status === 'pending' ? 'selected' : '' }}>⏳ Chờ đối tác giao xe</option>
-                                <option value="confirmed" {{ $rental->rental_status === 'confirmed' ? 'selected' : '' }}>✓ Đã duyệt (Sẵn sàng xe)</option>
-                                <option value="in_progress" {{ $rental->rental_status === 'in_progress' ? 'selected' : '' }}>🚗 Đang phục vụ / Khách đang đi</option>
-                                <option value="returned" {{ $rental->rental_status === 'returned' ? 'selected' : '' }}>🏆 Đã trả xe về showroom</option>
-                                <option value="cancelled" {{ $rental->rental_status === 'cancelled' ? 'selected' : '' }}>✗ Đã hủy đơn thuê</option>
-                            </select>
+                            @if($rental->rental_type === 'with_driver' && $rental->driver_name)
+                                <div class="small text-dark font-weight-bold mt-2 text-left">
+                                    <i class="fa fa-id-card-o mr-1"></i> Tài xế phục vụ: {{ $rental->driver_name }} ({{ $rental->driver_phone }})
+                                </div>
+                            @endif
                         </div>
+                    @else
+                        <form action="{{ route('admin.rentals.updateStatus', $rental->id) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
 
-                        <div class="form-group mb-3">
-                            <label class="font-weight-bold small text-muted">Trạng thái thanh toán phí thuê:</label>
-                            <select name="payment_status" class="form-control font-weight-bold">
-                                <option value="unpaid" {{ $rental->payment_status === 'unpaid' ? 'selected' : '' }}>Chưa thanh toán cọc (Không cấp mã OTP)</option>
-                                <option value="deposit_paid" {{ $rental->payment_status === 'deposit_paid' ? 'selected' : '' }}>✓ Đã nộp cọc ký quỹ Escrow (Tự sinh mã OTP)</option>
-                                <option value="fully_paid" {{ $rental->payment_status === 'fully_paid' ? 'selected' : '' }}>🏆 Đã thanh toán đầy đủ 100% (Tự sinh mã OTP)</option>
-                            </select>
-                            <small class="text-muted d-block mt-1"><i class="fa fa-info-circle mr-1"></i> Admin có toàn quyền điều chỉnh trạng thái cọc để tránh khách thanh toán trễ bị mất quyền nhận xe.</small>
-                        </div>
+                            <!-- Gán tài xế nếu là loại thuê có tài xế -->
+                            @if($rental->rental_type === 'with_driver')
+                                <div class="p-3 bg-light rounded border mb-3">
+                                    <h6 class="font-weight-bold text-primary mb-2"><i class="fa fa-id-card-o mr-1"></i> Thông tin tài xế phục vụ:</h6>
+                                    <div class="form-group mb-2">
+                                        <label class="font-weight-bold small text-muted">Họ tên tài xế:</label>
+                                        <input type="text" name="driver_name" value="{{ $rental->driver_name }}" class="form-control form-control-sm" placeholder="VD: Nguyễn Văn Tài">
+                                    </div>
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold small text-muted">Số điện thoại tài xế:</label>
+                                        <input type="tel" name="driver_phone" value="{{ $rental->driver_phone }}" class="form-control form-control-sm" placeholder="VD: 0988xxxxxx">
+                                    </div>
+                                </div>
+                            @endif
 
-                        <div class="form-group mb-3">
-                            <label class="font-weight-bold small text-muted">Ghi chú quản trị:</label>
-                            <textarea name="admin_note" class="form-control form-control-sm" rows="2" placeholder="Ghi chú điều phối...">{{ $rental->admin_note }}</textarea>
-                        </div>
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold small text-muted">Trạng thái hợp đồng thuê xe:</label>
+                                <select name="rental_status" class="form-control font-weight-bold" style="height: 42px;">
+                                    <option value="pending" {{ $rental->rental_status === 'pending' ? 'selected' : '' }}>⏳ Chờ đối tác giao xe</option>
+                                    <option value="confirmed" {{ $rental->rental_status === 'confirmed' ? 'selected' : '' }}>✓ Đã duyệt (Sẵn sàng xe)</option>
+                                    <option value="in_progress" {{ $rental->rental_status === 'in_progress' ? 'selected' : '' }}>🚗 Đang phục vụ / Khách đang đi</option>
+                                    <option value="returned" {{ $rental->rental_status === 'returned' ? 'selected' : '' }}>🏆 Đã trả xe về showroom</option>
+                                    <option value="cancelled" {{ $rental->rental_status === 'cancelled' ? 'selected' : '' }}>✗ Đã hủy đơn thuê</option>
+                                </select>
+                            </div>
 
-                        <button type="submit" class="btn btn-outline-danger btn-block font-weight-bold py-2">
-                            <i class="fa fa-save mr-1"></i> Lưu cập nhật
-                        </button>
-                    </form>
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold small text-muted">Trạng thái thanh toán phí thuê:</label>
+                                <select name="payment_status" class="form-control font-weight-bold">
+                                    <option value="unpaid" {{ $rental->payment_status === 'unpaid' ? 'selected' : '' }}>Chưa thanh toán cọc (Không cấp mã OTP)</option>
+                                    <option value="deposit_paid" {{ $rental->payment_status === 'deposit_paid' ? 'selected' : '' }}>✓ Đã nộp cọc ký quỹ Escrow (Tự sinh mã OTP)</option>
+                                    <option value="fully_paid" {{ $rental->payment_status === 'fully_paid' ? 'selected' : '' }}>🏆 Đã thanh toán đầy đủ 100% (Tự sinh mã OTP)</option>
+                                </select>
+                                <small class="text-muted d-block mt-1"><i class="fa fa-info-circle mr-1"></i> Admin có toàn quyền điều chỉnh trạng thái cọc để tránh khách thanh toán trễ bị mất quyền nhận xe.</small>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold small text-muted">Ghi chú quản trị:</label>
+                                <textarea name="admin_note" class="form-control form-control-sm" rows="2" placeholder="Ghi chú điều phối...">{{ $rental->admin_note }}</textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-outline-danger btn-block font-weight-bold py-2">
+                                <i class="fa fa-save mr-1"></i> Lưu cập nhật
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
         </div>

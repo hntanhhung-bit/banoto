@@ -169,103 +169,21 @@
                         <i class="fa fa-money text-success mr-1"></i> 3. Phương thức thanh toán
                     </h5>
 
-                    <!-- Cổng MoMo -->
-                    <div class="custom-control custom-radio mb-3 p-3 border rounded bg-light" style="border-color: #d82d8b !important;">
-                        <input type="radio" id="payment_momo" name="payment_method" value="momo" class="custom-control-input" checked>
-                        <label class="custom-control-label font-weight-bold text-dark d-flex align-items-center" for="payment_momo">
-                            <span class="badge mr-2 px-2 py-1" style="background-color: #a50064; color: #fff; font-size: 13px;">
-                                <i class="fa fa-credit-card mr-1"></i> MoMo ATM
-                            </span>
-                            <span>Thanh toán bằng Thẻ ATM nội địa (Cổng MoMo Sandbox)</span>
-                        </label>
-                        <p class="small text-muted mb-0 mt-1 ml-4">
-                            Kết nối trực tiếp đến cổng MoMo Sandbox để nhập thẻ ATM nội địa, tự động cập nhật trạng thái đơn và lưu vết đối soát.
-                        </p>
-
-                        <!-- Bảng hướng dẫn tài khoản thẻ ATM Test MoMo theo yêu cầu -->
-                        <div class="mt-2 ml-4 p-2 rounded border bg-white small text-muted shadow-sm">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <strong class="text-dark"><i class="fa fa-credit-card text-primary mr-1"></i> Danh sách thẻ ATM Test (MoMo Sandbox):</strong>
-                                <span class="badge badge-info">OTP bất kỳ</span>
-                            </div>
-                            <div class="table-responsive m-0">
-                                <table class="table table-sm table-bordered m-0 text-center" style="font-size: 11.5px;">
-                                    <thead class="bg-light text-dark font-weight-bold">
-                                        <tr>
-                                            <th style="width: 32px;">No</th>
-                                            <th>Tên</th>
-                                            <th>Số thẻ</th>
-                                            <th>Hạn ghi trên thẻ</th>
-                                            <th>OTP</th>
-                                            <th>Trường hợp</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr class="table-success">
-                                            <td class="font-weight-bold">1</td>
-                                            <td>NGUYEN VAN A</td>
-                                            <td><code class="font-weight-bold text-dark">9704 0000 0000 0018</code></td>
-                                            <td>12/30</td>
-                                            <td>Bất kỳ</td>
-                                            <td><strong class="text-success"><i class="fa fa-check-circle"></i> Thành công</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="font-weight-bold">2</td>
-                                            <td>NGUYEN VAN A</td>
-                                            <td><code class="font-weight-bold text-muted">9704 0000 0000 0026</code></td>
-                                            <td>12/30</td>
-                                            <td>Bất kỳ</td>
-                                            <td><span class="badge badge-danger">Thẻ khóa</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="font-weight-bold">3</td>
-                                            <td>NGUYEN VAN A</td>
-                                            <td><code class="font-weight-bold text-muted">9704 0000 0000 0034</code></td>
-                                            <td>12/30</td>
-                                            <td>Bất kỳ</td>
-                                            <td><span class="badge badge-warning text-dark">Không đủ tiền</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="font-weight-bold">4</td>
-                                            <td>NGUYEN VAN A</td>
-                                            <td><code class="font-weight-bold text-muted">9704 0000 0000 0042</code></td>
-                                            <td>12/30</td>
-                                            <td>Bất kỳ</td>
-                                            <td><span class="badge badge-secondary">Hạn mức thẻ</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-
-
                     <!-- Cổng SePay QR Code Tự Động -->
                     <div class="custom-control custom-radio mb-3 p-3 border rounded bg-light" style="border-color: #005fb7 !important;">
-                        <input type="radio" id="payment_sepay" name="payment_method" value="sepay" class="custom-control-input">
+                        <input type="radio" id="payment_sepay" name="payment_method" value="sepay" class="custom-control-input" checked>
                         <label class="custom-control-label font-weight-bold text-dark d-flex align-items-center" for="payment_sepay">
                             <span class="badge badge-primary mr-2 px-2 py-1" style="font-size: 13px;">
-                                <i class="fa fa-qrcode mr-1"></i> SePay QR
+                                <i class="fa fa-qrcode mr-1"></i> SePay VietQR
                             </span>
                             <span>Thanh toán quét mã QR Ngân hàng (SePay Tự Động 24/7)</span>
                         </label>
                         <p class="small text-muted mb-0 mt-1 ml-4">
-                            Quét mã VietQR bằng mọi ứng dụng ngân hàng (TPBank, Vietcombank, MB, Techcombank...). Hệ thống tự động xác nhận sau 3 giây.
+                            Quét mã VietQR bằng mọi ứng dụng ngân hàng (TPBank, Vietcombank, MB, Techcombank, VPBank, ACB...). Hệ thống tự động xác nhận chuyển tiền sau 3 giây.
                         </p>
                     </div>
 
-                    <!-- COD / Nhận tại Showroom hoặc Bàn giao -->
-                    <div class="custom-control custom-radio p-3 border rounded bg-light">
-                        <input type="radio" id="payment_cod" name="payment_method" value="cod" class="custom-control-input">
-                        <label class="custom-control-label font-weight-bold text-dark d-flex align-items-center" for="payment_cod">
-                            <i class="fa fa-handshake-o text-success mr-2" style="font-size: 20px;"></i>
-                            <span>Thanh toán khi nhận bàn giao xe (Tiền mặt / Cà thẻ POS tại chỗ)</span>
-                        </label>
-                        <p class="small text-muted mb-0 mt-1 ml-4">
-                            Thanh toán trực tiếp cho nhân viên đại lý khi nhận bàn giao xe tại Showroom hoặc tại nhà.
-                        </p>
-                    </div>
+
                 </div>
             </div>
 

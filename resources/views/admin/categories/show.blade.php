@@ -70,11 +70,8 @@
                             <td class="align-middle text-danger font-weight-bold">{{ number_format($product->price) }} đ</td>
                             <td class="align-middle">{{ $product->color ?: 'Mặc định' }}</td>
                             <td class="text-center align-middle">
-                                <a class="btn btn-info btn-sm text-white" href="{{ route('admin.products.show', $product->id) }}" title="Xem chi tiết">
+                                <a class="btn btn-info btn-sm text-white" href="{{ route('admin.products.show', $product->id) }}" title="Xem chi tiết kiểm định">
                                     <i class="fa fa-eye"></i>
-                                </a>
-                                <a class="btn btn-primary btn-sm text-white" href="{{ route('admin.products.edit', $product->id) }}" title="Sửa xe">
-                                    <i class="fa fa-edit"></i>
                                 </a>
                             </td>
                         </tr>

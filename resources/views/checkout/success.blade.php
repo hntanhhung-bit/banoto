@@ -24,43 +24,8 @@
                 <p class="small text-muted mb-0">Thời gian tạo: {{ $order->created_at->format('d/m/Y H:i') }}</p>
             </div>
 
-            <!-- Nếu chọn Ví MoMo -->
-            @if($order->payment_method === 'momo')
-                <div class="card border-0 shadow-sm p-4 mb-4 text-center" style="border-radius: 12px; border-left: 5px solid #a50064 !important; background: #fff5f8;">
-                    <div class="d-flex justify-content-center align-items-center mb-2">
-                        <span class="badge px-3 py-2 mr-2" style="background-color: #a50064; color: #fff; font-size: 16px;">
-                            <i class="fa fa-credit-card mr-1"></i> MoMo ATM Payment
-                        </span>
-                        @if($order->payment_status === 'paid')
-                            <span class="badge badge-success px-3 py-2" style="font-size: 15px;">
-                                <i class="fa fa-check-circle mr-1"></i> Đã thanh toán thành công
-                            </span>
-                        @else
-                            <span class="badge badge-warning text-dark px-3 py-2" style="font-size: 15px;">
-                                <i class="fa fa-clock-o mr-1"></i> Đang chờ thanh toán
-                            </span>
-                        @endif
-                    </div>
-                    @if($order->payment_status === 'paid')
-                        <p class="text-success font-weight-bold mb-1" style="font-size: 16px;">
-                            Giao dịch thanh toán qua MoMo đã được xác nhận thành công!
-                        </p>
-                        <p class="small text-muted mb-0">
-                            Hệ thống đã tự động chuyển giao thông tin sang bộ phận kỹ thuật để chuẩn bị và rửa xe trước khi bàn giao.
-                        </p>
-                    @else
-                        <p class="text-danger font-weight-bold mb-2">
-                            Đơn hàng chưa hoàn tất thanh toán trên cổng MoMo.
-                        </p>
-                        <a href="{{ route('orders.momo.pay', $order->id) }}" class="btn btn-danger font-weight-bold px-4 py-2 shadow-sm" style="background-color: #a50064; border-color: #a50064;">
-                            <i class="fa fa-refresh mr-1"></i> Bấm vào đây để thanh toán lại qua MoMo
-                        </a>
-                    @endif
-                </div>
-            @endif
-
-            <!-- Nếu chọn SePay QR -->
-            @if($order->payment_method === 'sepay')
+            <!-- Nếu chọn SePay QR (hoặc đơn cũ) -->
+            @if($order->payment_method === 'sepay' || $order->payment_method === 'momo')
                 <div class="card border-0 shadow-sm p-4 mb-4 text-center" style="border-radius: 12px; border-left: 5px solid #005fb7 !important; background: #f0f7ff;">
                     <div class="d-flex justify-content-center align-items-center mb-2">
                         <span class="badge badge-primary px-3 py-2 mr-2" style="font-size: 16px;">
@@ -168,9 +133,7 @@
                     <div class="col-md-6 mb-2">
                         <span class="text-muted">Phương thức thanh toán:</span>
                         <strong class="text-dark ml-1">
-                            @if($order->payment_method === 'momo')
-                                Cổng thanh toán MoMo (Thẻ ATM nội địa)
-                            @elseif($order->payment_method === 'sepay')
+                            @if($order->payment_method === 'sepay' || $order->payment_method === 'momo')
                                 Quét mã QR SePay (TPBank)
                             @elseif($order->payment_method === 'bank_transfer')
                                 Chuyển khoản Ngân hàng

@@ -8,7 +8,7 @@
     {
         "name": "TC_02_Product_Detail",
         "status": "PASS",
-        "note": "Xem chi tiet xe ID 11 thanh cong (200 OK)",
+        "note": "Xem chi tiet xe ID 18 thanh cong (200 OK)",
         "data": null
     },
     {
@@ -20,7 +20,7 @@
     {
         "name": "TC_04_Register_Success",
         "status": "PASS",
-        "note": "Tao user khachhang_1789548203@example.com thanh cong. email_verified_at = unverified",
+        "note": "Tao user khachhang_1791908367@example.com thanh cong. email_verified_at = unverified",
         "data": null
     },
     {
@@ -65,15 +65,15 @@
         "data": null
     },
     {
-        "name": "TC_12_MoMo_IPN_Signature_Verification",
+        "name": "TC_12_MoMo_Decommissioned_Safe_404",
         "status": "PASS",
-        "note": "MoMo IPN tu choi chu ky gia mao signature (Status: 400)",
+        "note": "Cổng MoMo đã được gỡ bỏ hoàn toàn an toàn (HTTP 404 Not Found)",
         "data": null
     },
     {
         "name": "TC_13_Admin_Toggle_Role",
         "status": "PASS",
-        "note": "Chuyen quyen thanh cong tu 'customer' sang 'admin'",
+        "note": "Chuyen quyen thanh cong tu 'customer' sang 'partner'",
         "data": null
     }
 ]

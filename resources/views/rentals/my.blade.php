@@ -156,24 +156,16 @@
                                         @endif
                                     </div>
 
-                                    <a href="{{ route('rentals.voucher', $rental->id) }}" target="_blank" class="btn btn-warning btn-sm font-weight-bold mb-1 d-block text-dark shadow-sm">
-                                        <i class="fa fa-file-text-o mr-1"></i> Phiếu Nhận Xe & QR
-                                    </a>
+
 
                                     <a href="{{ route('rentals.success', $rental->rental_code) }}" class="btn btn-outline-info btn-sm font-weight-bold mb-1 d-block" title="Xem chi tiết & thanh toán cọc">
                                         <i class="fa fa-credit-card"></i> Chi tiết / Đặt cọc
                                     </a>
 
                                     @if($rental->payment_status !== 'deposit_paid' && $rental->rental_status !== 'cancelled')
-                                        @if($rental->payment_method === 'sepay')
-                                            <a href="{{ route('rentals.sepay.pay', $rental->id) }}" class="btn btn-primary btn-sm font-weight-bold mb-1 d-block">
-                                                <i class="fa fa-qrcode"></i> Quét QR Cọc
-                                            </a>
-                                        @elseif($rental->payment_method === 'momo')
-                                            <a href="{{ route('rentals.momo.pay', ['rental' => $rental->id, 'type' => 'payWithATM']) }}" class="btn btn-danger btn-sm font-weight-bold mb-1 d-block" style="background-color: #a50064; border-color: #a50064;">
-                                                <i class="fa fa-credit-card"></i> Cọc Thẻ ATM MoMo
-                                            </a>
-                                        @endif
+                                        <a href="{{ route('rentals.sepay.pay', $rental->id) }}" class="btn btn-primary btn-sm font-weight-bold mb-1 d-block shadow-sm">
+                                            <i class="fa fa-qrcode"></i> Quét QR Cọc SePay
+                                        </a>
                                     @endif
 
                                     @if($rental->rental_status === 'pending')

@@ -26,7 +26,7 @@ class RentalController extends Controller
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:start_date',
             'pickup_location' => 'required|in:at_showroom,delivery_home',
-            'payment_method' => 'required|in:bank_transfer,cod,momo,sepay',
+            'payment_method' => 'required|in:bank_transfer,cod,sepay',
             'refund_bank_name' => 'nullable|string|max:100',
             'refund_account_number' => 'nullable|string|max:50',
             'refund_account_holder' => 'nullable|string|max:255',
@@ -62,15 +62,10 @@ class RentalController extends Controller
         }
 
         $rentalType = $request->input('rental_type', 'self_drive');
-        $selectedColor = $request->input('selected_color', 'Trắng ngọc trai');
+        $selectedColor = $request->input('selected_color', $product->color ?: 'Màu tiêu chuẩn');
 
-        // Tính giá thuê theo màu sắc đã chọn
+        // Giá thuê trực tiếp theo ngày của xe
         $dailyPrice = $product->rent_price_per_day ?: 800000;
-        $colorVariants = $product->getColorVariants();
-        $matchedColor = $colorVariants->firstWhere('color_name', $selectedColor);
-        if ($matchedColor) {
-            $dailyPrice = $matchedColor->rent_price_per_day;
-        }
 
         $totalRentalFee = $totalDays * $dailyPrice;
 
@@ -143,10 +138,6 @@ class RentalController extends Controller
             'note' => $note,
         ]);
 
-        if ($rental->payment_method === 'momo') {
-            return redirect()->route('rentals.momo.pay', $rental->id);
-        }
-
         if ($rental->payment_method === 'sepay') {
             return redirect()->route('rentals.sepay.pay', $rental->id);
         }
@@ -165,7 +156,7 @@ class RentalController extends Controller
         return redirect()->route('rentals.success', $rental->rental_code)->with('success', "Đăng ký dịch vụ {$serviceTitle} thành công! Nền tảng Bên thứ ba đang bảo lãnh đơn thuê và điều phối xe từ Nhà xe đối tác {$partnerShowroom->name}.");
     }
 
-    // Hiển thị thông báo hợp đồng thuê xe & thanh toán cọc MoMo ATM
+    // Hiển thị thông báo hợp đồng thuê xe & thanh toán cọc SePay VietQR
     public function success($rental_code)
     {
         $rental = Rental::with('product')->where('rental_code', $rental_code)->firstOrFail();

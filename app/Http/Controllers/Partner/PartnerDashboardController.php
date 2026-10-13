@@ -708,7 +708,7 @@ class PartnerDashboardController extends Controller
             // Tự động đồng bộ / tạo Đơn mua xe (Order) cho khách hàng & Admin quản lý
             \App\Models\Order::syncFromAppointment($appointment, $paymentMethod, 'paid');
 
-            return redirect()->back()->with('warning', '⚠️ ĐÃ GHI NHẬN KHÁCH ĐỒNG Ý MUA XE! Hệ thống đã tự động gỡ mẫu xe này khỏi trang chủ và đồng bộ sang Đơn mua xe của Admin & Khách hàng. Nhà xe vui lòng thanh toán đúng 1% hoa hồng Sàn (' . number_format($commissionAmount) . ' VNĐ) qua Cổng VietQR SePay hoặc MoMo bên dưới để hoàn tất và khóa hồ sơ.');
+            return redirect()->back()->with('warning', '⚠️ ĐÃ GHI NHẬN KHÁCH ĐỒNG Ý MUA XE! Hệ thống đã tự động gỡ mẫu xe này khỏi trang chủ và đồng bộ sang Đơn mua xe của Admin & Khách hàng. Nhà xe vui lòng thanh toán đúng 1% hoa hồng Sàn (' . number_format($commissionAmount) . ' VNĐ) qua Cổng VietQR SePay bên dưới để hoàn tất và khóa hồ sơ.');
         }
 
         // Trường hợp 3: Đang đàm phán / tư vấn
@@ -721,39 +721,7 @@ class PartnerDashboardController extends Controller
         return redirect()->back()->with('success', 'Đã cập nhật tiến độ tư vấn lái thử xe!');
     }
 
-    // Bắt đầu thanh toán 1% hoa hồng môi giới bán xe qua Cổng MoMo Test (Ví MoMo hoặc Thẻ ATM Napas)
-    public function payAppointmentCommissionMomo(Request $request, Appointment $appointment, \App\Services\MomoService $momo)
-    {
-        $partnerId = $this->getPartnerId();
-        if ($appointment->partner_id !== $partnerId && Auth::user()->role !== 'admin') {
-            abort(403, 'Bạn không có quyền thực hiện thanh toán cho lịch hẹn này.');
-        }
 
-        if ($appointment->commission_status === 'paid') {
-            return redirect()->route('partner.appointments')->with('info', 'Lịch hẹn này đã được nộp 1% hoa hồng sàn trước đó.');
-        }
-
-        $carPrice = (float) ($appointment->deal_price ?: ($appointment->product?->price ?: 500000000));
-        $commission1 = (int) ($appointment->commission_amount ?: round($carPrice * 0.01));
-
-        $requestType = $request->query('type', 'captureWallet'); // 'captureWallet' hoặc 'payWithATM'
-        $methodLabel = $requestType === 'payWithATM' ? 'Thẻ ATM nội địa (MoMo Test)' : 'Ví MoMo Test';
-
-        $transaction = PaymentTransaction::create([
-            'gateway' => 'momo',
-            'amount' => $commission1,
-            'status' => 'pending',
-            'message' => "Nộp 1% hoa hồng sàn bán xe #{$appointment->appointment_code} qua {$methodLabel}",
-        ]);
-
-        $result = $momo->createAppointmentCommissionPayment($appointment, $transaction, $requestType);
-
-        if (isset($result['payUrl']) && !empty($result['payUrl'])) {
-            return redirect($result['payUrl']);
-        }
-
-        return redirect()->route('partner.appointments')->with('error', 'Không thể kết nối tới cổng MoMo Test: ' . ($result['message'] ?? 'Vui lòng thử lại sau.'));
-    }
 
     // Xác nhận nộp 1% hoa hồng sàn bằng chuyển khoản ngân hàng (SePay / TPBank)
     public function confirmAppointmentCommission(Request $request, Appointment $appointment)
@@ -887,6 +855,11 @@ class PartnerDashboardController extends Controller
 
         $count = 0;
         foreach ($rentals as $rental) {
+            // Không cho phép thay đổi tiến độ nếu hợp đồng đã hoàn tất nghiệm thu và hoàn cọc
+            if ($rental->refund_status === 'refunded') {
+                continue;
+            }
+
             $rental->update(['rental_status' => $newStatus]);
 
             // Cập nhật trạng thái xe tương ứng
@@ -907,6 +880,10 @@ class PartnerDashboardController extends Controller
         ];
         $label = $statusLabels[$newStatus] ?? $newStatus;
 
+        if ($count === 0) {
+            return redirect()->back()->with('warning', '⚠️ Không có hợp đồng nào được cập nhật do các hợp đồng đã chọn đều đã hoàn tất và khóa trạng thái.');
+        }
+
         return redirect()->back()->with('success', "✅ Đã cập nhật thành công {$count} hợp đồng sang tiến độ: '{$label}'!");
     }
 
@@ -916,6 +893,11 @@ class PartnerDashboardController extends Controller
         $partnerId = $this->getPartnerId();
         if ($rental->partner_id !== $partnerId && Auth::user()->role !== 'admin') {
             abort(403);
+        }
+
+        // Khóa không cho phép thay đổi tiến độ khi đã nghiệm thu và hoàn cọc hoàn tất
+        if ($rental->refund_status === 'refunded') {
+            return redirect()->back()->with('error', '⛔ Hợp đồng này đã hoàn tất nghiệm thu và đã được Sàn hoàn cọc thành công. Trạng thái hợp đồng đã được khóa cố định, không thể thay đổi nữa.');
         }
 
         $request->validate([
@@ -996,77 +978,39 @@ class PartnerDashboardController extends Controller
         // Cập nhật trạng thái xe sang đang thuê
         $rental->product?->update(['rental_status' => 'rented']);
 
-        PaymentTransaction::create([
-            'rental_id' => $rental->id,
-            'gateway' => 'handover_verified',
-            'gateway_order_id' => 'HANDOVER_' . $rental->rental_code,
-            'amount' => 0,
-            'status' => 'success',
-            'message' => "Xác thực mã bảo mật đối chiếu thành công ({$rental->handover_code}). Đã bàn giao xe cho khách hàng {$rental->customer_name}. ODO lúc giao: {$request->handover_odo} km, Xăng: {$request->handover_fuel}%." . ($request->handover_notes ? " Ghi chú: {$request->handover_notes}" : ''),
-            'paid_at' => now(),
-        ]);
+        PaymentTransaction::updateOrCreate(
+            [
+                'gateway' => 'handover_verified',
+                'gateway_order_id' => 'HANDOVER_' . $rental->rental_code,
+            ],
+            [
+                'rental_id' => $rental->id,
+                'amount' => 0,
+                'status' => 'success',
+                'message' => "Xác thực mã bảo mật đối chiếu thành công ({$rental->handover_code}). Đã bàn giao xe cho khách hàng {$rental->customer_name}. ODO lúc giao: {$request->handover_odo} km, Xăng: {$request->handover_fuel}%." . ($request->handover_notes ? " Ghi chú: {$request->handover_notes}" : ''),
+                'paid_at' => now(),
+            ]
+        );
 
         return redirect()->back()->with('success', "✅ ĐỐI CHIẾU MÃ BẢO MẬT THÀNH CÔNG! Đã bàn giao xe cho khách hàng {$rental->customer_name}. Hợp đồng chuyển sang trạng thái ĐANG PHỤC VỤ.");
     }
 
-    // Bắt đầu thanh toán 10% hoa hồng sàn qua Cổng MoMo Test (Ví MoMo hoặc Thẻ ATM Napas)
-    public function payCommissionMomo(Request $request, Rental $rental, \App\Services\MomoService $momo)
-    {
-        $partnerId = $this->getPartnerId();
-        if ($rental->partner_id !== $partnerId && Auth::user()->role !== 'admin') {
-            abort(403, 'Bạn không có quyền thực hiện thanh toán cho đơn thuê này.');
-        }
-
-        if ($rental->partner_commission_status === 'paid') {
-            return redirect()->route('partner.rentals')->with('info', 'Đơn thuê này đã được nộp 10% hoa hồng sàn trước đó.');
-        }
-
-        $totalRentalFee = (float) ($rental->total_rental_fee + $rental->total_driver_fee);
-        $commission10 = round($totalRentalFee * 0.10);
-
-        $requestType = $request->query('type', 'captureWallet'); // 'captureWallet' hoặc 'payWithATM'
-        $methodLabel = $requestType === 'payWithATM' ? 'Thẻ ATM nội địa (Cổng MoMo Test)' : 'Ví MoMo Test';
-
-        $transaction = PaymentTransaction::create([
-            'rental_id' => $rental->id,
-            'gateway' => 'momo',
-            'amount' => $commission10,
-            'status' => 'pending',
-            'message' => "Nộp 10% hoa hồng sàn đơn thuê #{$rental->rental_code} qua {$methodLabel}",
-        ]);
-
-        $result = $momo->createPartnerCommissionPayment($rental, $transaction, $requestType);
-
-        if (isset($result['payUrl']) && !empty($result['payUrl'])) {
-            return redirect($result['payUrl']);
-        }
-
-        return redirect()->route('partner.rentals')->with('error', 'Không thể kết nối tới cổng MoMo Test: ' . ($result['message'] ?? 'Vui lòng thử lại sau.'));
-    }
-
     // Đối tác nghiệm thu biên bản trả xe & gửi đề xuất hoàn cọc ký quỹ tới Admin sàn
-    // BẮT BUỘC: Đối tác phải chuyển 10% hoa hồng sàn (qua MoMo Test hoặc chuyển khoản ngân hàng Admin TPBank)
-    public function refund(Request $request, Rental $rental, \App\Services\MomoService $momo)
+    // BẮT BUỘC: Đối tác chuyển 10% hoa hồng sàn qua SePay VietQR (Tài khoản Admin TPBank)
+    public function refund(Request $request, Rental $rental)
     {
         $partnerId = $this->getPartnerId();
         if ($rental->partner_id !== $partnerId && Auth::user()->role !== 'admin') {
             abort(403);
         }
 
+        // Khóa không cho phép thay đổi biên bản nghiệm thu nếu đã hoàn cọc hoàn tất
+        if ($rental->refund_status === 'refunded') {
+            return redirect()->back()->with('error', '⛔ Hợp đồng này đã được Ban Quản Trị hoàn cọc cho khách hàng thành công. Biên bản nghiệm thu đã được khóa cố định, không thể chỉnh sửa.');
+        }
+
         $totalRentalFee = (float) ($rental->total_rental_fee + $rental->total_driver_fee);
         $commission10 = round($totalRentalFee * 0.10);
-
-        // Nếu đối tác chọn thanh toán 10% hoa hồng qua MoMo Test ngay trong form
-        if ($request->input('commission_payment_method') === 'momo' && $rental->partner_commission_status !== 'paid') {
-            $rental->update([
-                'refund_amount' => (float) $request->refund_amount,
-                'refund_holding_fee' => (float) $request->input('refund_holding_fee', 0),
-                'refund_notes' => $request->refund_notes,
-                'return_odo' => $request->return_odo,
-                'return_fuel' => $request->return_fuel,
-            ]);
-            return $this->payCommissionMomo($request, $rental, $momo);
-        }
 
         $rules = [
             'refund_amount' => 'required|numeric|min:0',
@@ -1076,7 +1020,7 @@ class PartnerDashboardController extends Controller
             'return_fuel' => 'nullable|integer|min:0|max:100',
         ];
 
-        // Nếu là xe của đối tác và chưa nộp qua MoMo, bắt buộc đối tác phải nhập mã GD ngân hàng
+        // Nếu là xe của đối tác và chưa nộp hoa hồng, bắt buộc đối tác phải nhập mã GD ngân hàng
         if ($rental->partner_id && $commission10 > 0 && $rental->partner_commission_status !== 'paid') {
             $rules['commission_payment_proof'] = 'required|string|max:100';
             $rules['confirm_commission_paid'] = 'required|accepted';
@@ -1126,30 +1070,38 @@ class PartnerDashboardController extends Controller
         // Mở lại trạng thái xe sẵn sàng cho thuê trong kho Showroom
         $rental->product?->update(['rental_status' => 'available']);
 
-        $proofCode = $rental->partner_commission_proof ?: ($request->commission_payment_proof ?: 'MOMO_TEST_PAID');
+        $proofCode = $rental->partner_commission_proof ?: ($request->commission_payment_proof ?: 'SEPAY_COMMISSION_PAID');
 
         // Ghi nhận giao dịch nộp 10% hoa hồng sàn của đối tác nếu nộp qua chuyển khoản ngân hàng
         if ($rental->partner_id && $commission10 > 0 && !$wasPaidBefore) {
-            PaymentTransaction::create([
-                'rental_id' => $rental->id,
-                'gateway' => 'partner_commission_10pct',
-                'gateway_order_id' => 'COMM10_' . $rental->rental_code,
-                'amount' => $commission10,
-                'status' => 'success',
-                'message' => "Đối tác Showroom ({$partnerName}) đã chuyển khoản đủ 10% hoa hồng sàn: " . number_format($commission10) . " VNĐ vào tài khoản Admin TPBank. Mã GD: {$proofCode}.",
-                'paid_at' => now(),
-            ]);
+            PaymentTransaction::updateOrCreate(
+                [
+                    'gateway' => 'partner_commission_10pct',
+                    'gateway_order_id' => 'COMM10_' . $rental->rental_code,
+                ],
+                [
+                    'rental_id' => $rental->id,
+                    'amount' => $commission10,
+                    'status' => 'success',
+                    'message' => "Đối tác Showroom ({$partnerName}) đã chuyển khoản đủ 10% hoa hồng sàn: " . number_format($commission10) . " VNĐ vào tài khoản Admin TPBank. Mã GD: {$proofCode}.",
+                    'paid_at' => now(),
+                ]
+            );
         }
 
-        PaymentTransaction::create([
-            'rental_id' => $rental->id,
-            'gateway' => 'partner_inspection_completed',
-            'gateway_order_id' => 'INSPECT_' . $rental->rental_code,
-            'amount' => $refundAmount,
-            'status' => 'pending',
-            'message' => "Showroom đối tác ({$partnerName}) đã nghiệm thu nhận lại xe nguyên vẹn và đã nộp 10% hoa hồng sàn (" . number_format($commission10) . "đ, Mã: {$proofCode}). Đã gửi đề xuất Admin sàn chuyển cọc " . number_format($refundAmount) . "đ cho khách hàng {$rental->customer_name}. Giữ lại đối soát: " . number_format($holdingFee) . "đ." . ($refundNotes ? " Ghi chú: {$refundNotes}" : ''),
-            'paid_at' => now(),
-        ]);
+        PaymentTransaction::updateOrCreate(
+            [
+                'gateway' => 'partner_inspection_completed',
+                'gateway_order_id' => 'INSPECT_' . $rental->rental_code,
+            ],
+            [
+                'rental_id' => $rental->id,
+                'amount' => $refundAmount,
+                'status' => 'pending',
+                'message' => "Showroom đối tác ({$partnerName}) đã nghiệm thu nhận lại xe nguyên vẹn và đã nộp 10% hoa hồng sàn (" . number_format($commission10) . "đ, Mã: {$proofCode}). Đã gửi đề xuất Admin sàn chuyển cọc " . number_format($refundAmount) . "đ cho khách hàng {$rental->customer_name}. Giữ lại đối soát: " . number_format($holdingFee) . "đ." . ($refundNotes ? " Ghi chú: {$refundNotes}" : ''),
+                'paid_at' => now(),
+            ]
+        );
 
         return redirect()->back()->with('success', '✅ Đã nộp 10% hoa hồng sàn (' . number_format($commission10) . 'đ) và hoàn tất biên bản nghiệm thu xe thành công! Mẫu xe đã sẵn sàng cho lượt thuê mới. Đề xuất hoàn cọc ' . number_format($refundAmount) . 'đ đã được chuyển sang Ban Quản Trị để chuyển khoản cho khách hàng.');
     }

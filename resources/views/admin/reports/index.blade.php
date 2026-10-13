@@ -10,7 +10,7 @@
                 <i class="fa fa-line-chart text-primary mr-2"></i> BÁO CÁO DOANH THU & THỐNG KÊ KINH DOANH
             </h3>
             <p class="text-muted small mb-0">
-                Dữ liệu doanh thu tích hợp đồng bộ từ sổ giao dịch thanh toán thực nhận (MoMo, VietQR & Showroom), chỉ tính các giao dịch đã thanh toán thành công.
+                Dữ liệu doanh thu tích hợp đồng bộ từ sổ giao dịch thanh toán thực nhận (SePay VietQR & Showroom), chỉ tính các giao dịch đã thanh toán thành công.
             </p>
         </div>
         <div>
@@ -42,7 +42,7 @@
                     <div>
                         <span class="text-muted small font-weight-bold text-uppercase">Tổng GD đã thanh toán</span>
                         <div class="h3 font-weight-bold text-primary mb-0 mt-1">{{ number_format($totalPaidTx) }} <span style="font-size: 15px; font-weight: normal;">GD</span></div>
-                        <small class="text-muted">Khớp lệnh MoMo & VietQR</small>
+                        <small class="text-muted">Khớp lệnh SePay & Ngân hàng</small>
                     </div>
                     <div class="rounded-circle p-3" style="background-color: #eff6ff; color: #3b82f6;">
                         <i class="fa fa-credit-card fa-2x"></i>
@@ -72,7 +72,7 @@
                     <div>
                         <span class="text-muted small font-weight-bold text-uppercase">Tổng doanh thu thực nhận</span>
                         <div class="h3 font-weight-bold text-success mb-0 mt-1">{{ number_format($totalRevenue, 0, ',', '.') }} đ</div>
-                        <small class="text-success"><i class="fa fa-check-circle"></i> MoMo: {{ number_format($totalMomoRevenue, 0, ',', '.') }} đ | NH: {{ number_format($totalBankRevenue, 0, ',', '.') }} đ</small>
+                        <small class="text-success"><i class="fa fa-check-circle"></i> SePay: {{ number_format($totalMomoRevenue, 0, ',', '.') }} đ | NH: {{ number_format($totalBankRevenue, 0, ',', '.') }} đ</small>
                     </div>
                     <div class="rounded-circle p-3" style="background-color: #ecfdf5; color: #10b981;">
                         <i class="fa fa-money fa-2x"></i>

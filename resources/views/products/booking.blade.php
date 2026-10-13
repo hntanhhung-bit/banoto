@@ -71,12 +71,7 @@
     </nav>
 
     @php
-        $colorVariants = $product->getColorVariants();
-        $defaultColor = $colorVariants->firstWhere('is_default', true) ?: $colorVariants->first();
-        // Ưu tiên màu được truyền qua URL, nếu không thì dùng màu mặc định
-        $selectedColorName = request('color', $defaultColor->color_name);
-        $selectedColorObj = $colorVariants->firstWhere('color_name', $selectedColorName) ?? $defaultColor;
-        $initialRentPrice = $selectedColorObj->rent_price_per_day;
+        $initialRentPrice = $product->rent_price_per_day;
         $driverDailyFee = $product->driver_price_per_day ?: 500000;
         $depositAmount = $product->rental_deposit ?: 5000000;
 
@@ -127,10 +122,6 @@
 
                 <div class="car-summary-card">
                     <div class="small mb-1">
-                        <i class="fa fa-paint-brush text-danger mr-1"></i>
-                        Màu đã chọn: <strong class="text-primary current-color-name-text">{{ $selectedColorObj->color_name }}</strong>
-                    </div>
-                    <div class="small mb-1">
                         <i class="fa fa-key text-danger mr-1"></i>
                         Giá thuê tự lái: <strong class="text-danger"><span id="summary-self-price">{{ number_format($initialRentPrice) }}</span> đ/ngày</strong>
                     </div>
@@ -154,7 +145,7 @@
                 <h6 class="font-weight-bold text-dark mb-2"><i class="fa fa-shield text-success mr-1"></i> Cam kết của Nền tảng</h6>
                 <div class="d-flex flex-column small" style="gap: 10px;">
                     <div><i class="fa fa-check-circle text-success mr-1"></i> <strong>Bảo lãnh tiền cọc 100%</strong><br><span class="text-muted">Escrow giữ cọc an toàn, hoàn tự động khi trả xe đúng hợp đồng</span></div>
-                    <div><i class="fa fa-check-circle text-success mr-1"></i> <strong>Thanh toán bảo mật</strong><br><span class="text-muted">SePay QR · MoMo · Tiền mặt - mã hóa SSL 256-bit</span></div>
+                    <div><i class="fa fa-check-circle text-success mr-1"></i> <strong>Thanh toán bảo mật</strong><br><span class="text-muted">Chuyển khoản SePay VietQR tự động 24/7 - mã hóa SSL 256-bit</span></div>
                     <div><i class="fa fa-check-circle text-success mr-1"></i> <strong>Hỗ trợ 24/7</strong><br><span class="text-muted">Hotline & Livechat xử lý mọi sự cố trong chuyến đi</span></div>
                     <div><i class="fa fa-check-circle text-success mr-1"></i> <strong>Xe đạt 160 điểm kiểm định</strong><br><span class="text-muted">Kiểm tra kỹ thuật độc lập bởi chuyên viên bên thứ ba</span></div>
                 </div>
@@ -222,14 +213,6 @@
                         @auth
                             <form action="{{ route('appointments.store', $product->id) }}" method="POST">
                                 @csrf
-                                <input type="hidden" name="selected_color" class="global-selected-color-input" value="{{ $selectedColorObj->color_name }}">
-
-                                <div class="form-group mb-2">
-                                    <div class="p-2 bg-light border rounded small d-flex justify-content-between align-items-center">
-                                        <span><i class="fa fa-paint-brush text-danger mr-1"></i> Màu xe muốn xem:</span>
-                                        <strong class="text-primary current-color-name-text">{{ $selectedColorObj->color_name }}</strong>
-                                    </div>
-                                </div>
 
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
@@ -324,7 +307,7 @@
                             <div class="mr-3 p-2 bg-danger text-white rounded-circle"><i class="fa fa-key fa-lg"></i></div>
                             <div>
                                 <h5 class="font-weight-bold mb-0 text-dark">Đặt thuê xe tự lái hộ</h5>
-                                <small class="text-muted">Bên thứ ba bảo lãnh cọc qua SePay/MoMo, điều phối xe từ Nhà xe đối tác.</small>
+                                <small class="text-muted">Bên thứ ba bảo lãnh cọc qua SePay VietQR, điều phối xe từ Nhà xe đối tác.</small>
                             </div>
                         </div>
 
@@ -337,16 +320,6 @@
                             <form action="{{ route('rentals.store', $product->id) }}" method="POST" id="rental-self-form">
                                 @csrf
                                 <input type="hidden" name="rental_type" value="self_drive">
-                                <input type="hidden" name="selected_color" class="global-selected-color-input" value="{{ $selectedColorObj->color_name }}">
-                                <input type="hidden" name="pickup_lat" id="self_lat">
-                                <input type="hidden" name="pickup_lng" id="self_lng">
-
-                                <div class="form-group mb-2">
-                                    <div class="p-2 bg-light border rounded small d-flex justify-content-between align-items-center">
-                                        <span><i class="fa fa-paint-brush text-danger mr-1"></i> Màu xe đã chọn:</span>
-                                        <strong class="text-primary current-color-name-text">{{ $selectedColorObj->color_name }}</strong>
-                                    </div>
-                                </div>
 
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
@@ -402,9 +375,7 @@
                                 <div class="form-group">
                                     <label class="font-weight-bold small">Phương thức thanh toán cọc:</label>
                                     <select name="payment_method" class="form-control">
-                                        <option value="sepay" selected>Quét mã QR SePay (Chuyển khoản Ngân hàng tự động 24/7)</option>
-                                        <option value="momo">Thanh toán cọc bằng Thẻ ATM nội địa (Cổng MoMo)</option>
-                                        <option value="cod">Thanh toán cọc trực tiếp khi nhận bàn giao xe</option>
+                                        <option value="sepay" selected>Quét mã VietQR SePay (Chuyển khoản Ngân hàng tự động 24/7)</option>
                                     </select>
                                 </div>
 
@@ -457,7 +428,7 @@
                                         <strong id="self_days_display">2 ngày</strong>
                                     </div>
                                     <div class="calc-row">
-                                        <span>Giá thuê màu <strong class="current-color-name-text">{{ $selectedColorObj->color_name }}</strong>:</span>
+                                        <span>Tiền thuê xe (tạm tính):</span>
                                         <strong id="self_rent_fee_display">{{ number_format($initialRentPrice * 2) }} đ</strong>
                                     </div>
                                     <div class="calc-row">
@@ -504,17 +475,9 @@
                             <form action="{{ route('rentals.store', $product->id) }}" method="POST" id="rental-driver-form">
                                 @csrf
                                 <input type="hidden" name="rental_type" value="with_driver">
-                                <input type="hidden" name="selected_color" class="global-selected-color-input" value="{{ $selectedColorObj->color_name }}">
                                 <input type="hidden" name="pickup_location" value="delivery_home">
                                 <input type="hidden" name="pickup_lat" id="driver_lat">
                                 <input type="hidden" name="pickup_lng" id="driver_lng">
-
-                                <div class="form-group mb-2">
-                                    <div class="p-2 bg-light border rounded small d-flex justify-content-between align-items-center">
-                                        <span><i class="fa fa-paint-brush text-danger mr-1"></i> Màu xe đã chọn:</span>
-                                        <strong class="text-primary current-color-name-text">{{ $selectedColorObj->color_name }}</strong>
-                                    </div>
-                                </div>
 
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
@@ -558,9 +521,7 @@
                                 <div class="form-group">
                                     <label class="font-weight-bold small">Phương thức thanh toán cọc:</label>
                                     <select name="payment_method" class="form-control">
-                                        <option value="sepay" selected>Quét mã QR SePay (Chuyển khoản Ngân hàng tự động 24/7)</option>
-                                        <option value="momo">Thanh toán cọc bằng Thẻ ATM nội địa (Cổng MoMo)</option>
-                                        <option value="cod">Thanh toán trực tiếp khi gặp tài xế</option>
+                                        <option value="sepay" selected>Quét mã VietQR SePay (Chuyển khoản Ngân hàng tự động 24/7)</option>
                                     </select>
                                 </div>
 
@@ -613,7 +574,7 @@
                                         <strong id="driver_days_display">1 ngày</strong>
                                     </div>
                                     <div class="calc-row">
-                                        <span>Phí thuê xe (màu <strong class="current-color-name-text">{{ $selectedColorObj->color_name }}</strong>):</span>
+                                        <span>Tiền thuê xe (tạm tính):</span>
                                         <strong id="driver_rent_fee_display">{{ number_format($initialRentPrice) }} đ</strong>
                                     </div>
                                     <div class="calc-row">

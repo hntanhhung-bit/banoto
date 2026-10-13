@@ -83,8 +83,8 @@
                         <span class="badge badge-warning text-dark px-2 py-1"><i class="fa fa-clock-o"></i> Chưa thanh toán</span>
                     @endif
                     <span class="ml-1">
-                        @if($order->payment_method === 'momo')
-                            <span class="badge" style="background-color: #a50064; color: #fff;">Ví MoMo</span>
+                        @if($order->payment_method === 'sepay' || $order->payment_method === 'momo')
+                            <span class="badge badge-primary"><i class="fa fa-qrcode mr-1"></i> QR SePay</span>
                         @elseif($order->payment_method === 'bank_transfer')
                             <span class="badge badge-info">Chuyển khoản VietQR</span>
                         @elseif($order->payment_method === 'showroom')

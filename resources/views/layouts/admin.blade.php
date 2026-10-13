@@ -253,8 +253,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link admin-nav-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}" href="{{ route('admin.payments.index') }}" style="{{ request()->routeIs('admin.payments.*') ? 'background-color: #a50064 !important;' : '' }}">
-                            <i class="fa fa-qrcode" style="color: #ff69b4;"></i> Báo cáo MoMo & Thu chi
+                        <a class="nav-link admin-nav-link {{ request()->routeIs('admin.payments.*') ? 'active' : '' }}" href="{{ route('admin.payments.index') }}">
+                            <i class="fa fa-qrcode text-info"></i> Sổ giao dịch & Thu chi
                         </a>
                     </li>
                     <li class="nav-item">

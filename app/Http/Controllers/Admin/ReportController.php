@@ -103,10 +103,11 @@ class ReportController extends Controller
         $revenueByMonth = $this->periodRevenue($revenueByDate, 'month');
         $revenueByYear = $this->periodRevenue($revenueByDate, 'year');
         
-        // Tổng doanh thu thực nhận đồng bộ chính xác với Báo cáo thanh toán MoMo & Thu chi
+        // Tổng doanh thu thực nhận đồng bộ chính xác với Báo cáo thanh toán SePay & Thu chi
         $totalRevenue = (float) $this->paidTransactionsQuery()->sum('amount');
-        $totalMomoRevenue = (float) $this->paidTransactionsQuery()->where('gateway', 'momo')->sum('amount');
-        $totalBankRevenue = (float) $this->paidTransactionsQuery()->whereIn('gateway', ['sepay', 'bank_transfer'])->sum('amount');
+        $totalSepayRevenue = (float) $this->paidTransactionsQuery()->whereIn('gateway', ['sepay', 'momo'])->sum('amount');
+        $totalMomoRevenue = $totalSepayRevenue;
+        $totalBankRevenue = (float) $this->paidTransactionsQuery()->where('gateway', 'bank_transfer')->sum('amount');
         $totalCodRevenue = (float) $this->paidTransactionsQuery()->where('gateway', 'cod')->sum('amount');
         $totalPaidTx = $this->paidTransactionsQuery()->count();
 
@@ -180,17 +181,18 @@ class ReportController extends Controller
         }
 
         // Theo phương thức thanh toán
-        $momoRev = (float) $this->paidTransactionsQuery()->where('gateway', 'momo')->sum('amount');
-        $bankRev = (float) $this->paidTransactionsQuery()->whereIn('gateway', ['sepay', 'bank_transfer'])->sum('amount');
+        $sepayRev = (float) $this->paidTransactionsQuery()->whereIn('gateway', ['sepay', 'momo'])->sum('amount');
+        $bankRev = (float) $this->paidTransactionsQuery()->where('gateway', 'bank_transfer')->sum('amount');
         $codRev = (float) $this->paidTransactionsQuery()->where('gateway', 'cod')->sum('amount');
 
         $totalRevenue = (float) $this->paidTransactionsQuery()->sum('amount');
-        $totalMomoRevenue = $momoRev;
+        $totalSepayRevenue = $sepayRev;
+        $totalMomoRevenue = $sepayRev;
         $totalBankRevenue = $bankRev;
         $totalPaidTx = $this->paidTransactionsQuery()->count();
 
-        $paymentMethodLabels = ['Ví MoMo ATM/QR', 'Chuyển khoản VietQR / SePay', 'Tiền mặt / Showroom (COD)'];
-        $paymentMethodRevenue = [$momoRev, $bankRev, $codRev];
+        $paymentMethodLabels = ['Cổng SePay VietQR (TPBank)', 'Chuyển khoản Ngân hàng', 'Tiền mặt / Showroom (COD)'];
+        $paymentMethodRevenue = [$sepayRev, $bankRev, $codRev];
 
         return view('admin.reports.charts', compact(
             'catLabels',
@@ -204,6 +206,7 @@ class ReportController extends Controller
             'paymentMethodLabels',
             'paymentMethodRevenue',
             'totalRevenue',
+            'totalSepayRevenue',
             'totalMomoRevenue',
             'totalBankRevenue',
             'totalPaidTx'

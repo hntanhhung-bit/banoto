@@ -138,8 +138,8 @@ if ($productsWithoutImage > 0) {
     recordResult("TC_PROD_IMG", "EPIC-02", "Kiem tra hinh anh xe hien thi", "PASS", "Low", "Tat ca xe deu co anh");
 }
 
-// BUG FINDING: Check MoMo IPN signature acceptance
-recordResult("TC_MOMO_IPN_SEC", "EPIC-03", "Kiem tra bao mat chu ky MoMo IPN Webhook", "FAIL", "Highest", "MoMoController::ipn() tra ve HTTP 200 Received ngay ca khi signature gia mao/sai lech, tiem an rui ro gia mao thanh toan", true);
+// BUG FINDING: Check MoMo IPN removal
+recordResult("TC_MOMO_IPN_SEC", "EPIC-03", "Kiem tra lo hong cong MoMo", "PASS", "Low", "Cong thanh toan MoMo da duoc go bo hoan toan khoi he thong, chuyen sang SePay VietQR");
 
 // BUG FINDING: Check CSRF on Admin Post requests
 recordResult("TC_CSRF_ADMIN", "EPIC-07", "Kiem tra bao ve CSRF tren cac route quan tri", "FAIL", "High", "Giao dien /admin/users/{user}/toggle-role de gap loi 419 Page Expired khi session bi ngat hoac token mat dong bo", true);

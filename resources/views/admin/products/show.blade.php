@@ -140,8 +140,60 @@
                         </tbody>
                     </table>
 
-                    <div class="mt-4">
-                        <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-primary font-weight-bold px-4"><i class="fa fa-edit"></i> Chỉnh sửa thông tin xe này</a>
+                    <div class="mt-4 d-flex align-items-center flex-wrap" style="gap: 10px;">
+                        @if($product->approval_status === 'pending')
+                            <form action="{{ route('admin.products.approveCar', $product->id) }}" method="POST" class="d-inline"
+                                  onsubmit="return confirm('Xác nhận phê duyệt cho phép xe {{ $product->name }} hiển thị trên Sàn?');">
+                                @csrf
+                                <button type="submit" class="btn btn-success font-weight-bold px-4">
+                                    <i class="fa fa-check mr-1"></i> Phê duyệt xe này
+                                </button>
+                            </form>
+                            <button type="button" class="btn btn-danger font-weight-bold px-4" 
+                                    data-toggle="modal" data-target="#rejectCarModalDetail">
+                                <i class="fa fa-ban mr-1"></i> Từ chối kiểm định
+                            </button>
+                        @elseif($product->approval_status === 'approved')
+                            <span class="badge badge-success px-3 py-2" style="font-size: 14px;">
+                                <i class="fa fa-check-circle mr-1"></i> Xe đã được phê duyệt & đang hiển thị trên sàn
+                            </span>
+                        @else
+                            <span class="badge badge-danger px-3 py-2" style="font-size: 14px;">
+                                <i class="fa fa-ban mr-1"></i> Xe bị từ chối kiểm định
+                            </span>
+                        @endif
+
+                        <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" class="d-inline ml-auto"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa chiếc xe này khỏi sàn không?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger font-weight-bold px-3">
+                                <i class="fa fa-trash mr-1"></i> Xóa xe
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- MODAL TỪ CHỐI DUYỆT XE -->
+                    <div class="modal fade text-left" id="rejectCarModalDetail" tabindex="-1" role="dialog">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content border-0 shadow">
+                                <form action="{{ route('admin.products.rejectCar', $product->id) }}" method="POST">
+                                    @csrf
+                                    <div class="modal-header bg-danger text-white font-weight-bold">
+                                        <h6 class="modal-title font-weight-bold"><i class="fa fa-ban mr-1"></i> TỪ CHỐI DUYỆT XE #{{ $product->id }}</h6>
+                                        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="small text-muted mb-2">Vui lòng nhập lý do từ chối để Đối tác/Nhà xe nhận thông báo và điều chỉnh lại:</p>
+                                        <textarea name="admin_feedback" rows="3" class="form-control" required placeholder="Ví dụ: Giấy đăng kiểm hết hạn, hình ảnh xe mờ, thông tin biển số không trùng khớp..."></textarea>
+                                    </div>
+                                    <div class="modal-footer bg-light">
+                                        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Hủy</button>
+                                        <button type="submit" class="btn btn-danger btn-sm font-weight-bold">Xác nhận từ chối</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -21,24 +21,6 @@
         box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     }
 
-    /* Color Selector Box */
-    .color-variant-card {
-        border: 2px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 10px 14px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        background: #fff;
-    }
-    .color-variant-card:hover {
-        border-color: #005fb7;
-        background: #f0f7ff;
-    }
-    .color-variant-card.active {
-        border-color: #005fb7;
-        background: #ebf4ff;
-        box-shadow: 0 3px 8px rgba(0,95,183,0.15);
-    }
 
     /* Gallery Slider Styles */
     .gallery-main-frame {
@@ -210,12 +192,9 @@
     </nav>
 
     @php
-        $colorVariants = $product->getColorVariants();
-        $defaultColor = $colorVariants->firstWhere('is_default', true) ?: $colorVariants->first();
-        $initialRentPrice = $defaultColor->rent_price_per_day;
+        $initialRentPrice = $product->rent_price_per_day;
         $driverDailyFee = $product->driver_price_per_day ?: 500000;
         $depositAmount = $product->rental_deposit ?: 5000000;
-        $selectedColor = request('color', $defaultColor->color_name);
         $allImages = $product->getAllImages();
     @endphp
 
@@ -311,39 +290,7 @@
                     </div>
                 </div>
 
-                <!-- BỘ PHÂN LOẠI MÀU SẮC & BẢNG GIÁ THEO MÀU -->
-                <div class="p-3 bg-light rounded border mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <label class="font-weight-bold small text-uppercase text-dark mb-0">
-                            <i class="fa fa-paint-brush text-danger mr-1"></i> Phân loại màu sắc & Giá theo màu:
-                        </label>
-                        <span class="badge badge-primary font-weight-bold" id="selected-color-badge" style="font-size: 12px;">
-                            {{ $defaultColor->color_name }}
-                        </span>
-                    </div>
 
-                    <div class="row" style="gap: 8px 0;">
-                        @foreach($colorVariants as $cv)
-                            <div class="col-md-4 col-sm-6 mb-2">
-                                <div class="color-variant-card {{ $cv->color_name === $defaultColor->color_name ? 'active' : '' }}"
-                                     onclick="selectCarColor('{{ $cv->color_name }}', {{ $cv->rent_price_per_day }}, {{ $cv->extra_rent_price }}, this)">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <span style="display:inline-block; width:16px; height:16px; border-radius:50%; background-color:{{ $cv->color_hex }}; border:1.5px solid {{ $cv->border ?? '#aaa' }}; margin-right:6px;"></span>
-                                        <strong class="small text-dark">{{ $cv->color_name }}</strong>
-                                    </div>
-                                    <div class="text-danger font-weight-bold small">
-                                        {{ number_format($cv->rent_price_per_day) }} đ<small class="text-muted">/ngày</small>
-                                    </div>
-                                    @if($cv->extra_rent_price > 0)
-                                        <small class="text-success font-weight-bold d-block" style="font-size: 11px;">+{{ number_format($cv->extra_rent_price) }} đ phụ phí màu</small>
-                                    @else
-                                        <small class="text-muted font-italic d-block" style="font-size: 11px;">Màu chuẩn</small>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
 
                 <!-- Bảng giá dịch vụ áp dụng cho mẫu xe này -->
                 <div class="mb-3">
@@ -490,7 +437,7 @@
                     <p class="small text-muted mb-4">Chọn một trong 3 dịch vụ bên dưới để tiến hành đặt lịch & thanh toán:</p>
 
                     <!-- NÚT 1: ĐẶT LỊCH XEM XE -->
-                    <a href="{{ route('products.booking', ['product' => $product->id, 'action' => 'appointment', 'color' => $selectedColor]) }}"
+                    <a href="{{ route('products.booking', ['product' => $product->id, 'action' => 'appointment']) }}"
                        class="cta-btn-appointment mb-3 d-flex align-items-center">
                         <span class="cta-btn-icon"><i class="fa fa-calendar-check-o"></i></span>
                         <div>
@@ -501,18 +448,18 @@
                     </a>
 
                     <!-- NÚT 2: THUÊ XE TỰ LÁI -->
-                    <a href="{{ route('products.booking', ['product' => $product->id, 'action' => 'self_drive', 'color' => $selectedColor]) }}"
+                    <a href="{{ route('products.booking', ['product' => $product->id, 'action' => 'self_drive']) }}"
                        class="cta-btn-self-drive mb-3 d-flex align-items-center">
                         <span class="cta-btn-icon"><i class="fa fa-key"></i></span>
                         <div>
                             <div>2. Thuê xe tự lái</div>
-                            <small style="font-weight: 400; opacity: 0.85;">Từ <span id="cta-self-price">{{ number_format($initialRentPrice) }}</span> đ/ngày • Bảo lãnh cọc SePay/MoMo</small>
+                            <small style="font-weight: 400; opacity: 0.85;">Từ <span id="cta-self-price">{{ number_format($initialRentPrice) }}</span> đ/ngày • Bảo lãnh cọc SePay VietQR</small>
                         </div>
                         <i class="fa fa-chevron-right ml-auto"></i>
                     </a>
 
                     <!-- NÚT 3: THUÊ XE CÓ TÀI XẾ -->
-                    <a href="{{ route('products.booking', ['product' => $product->id, 'action' => 'with_driver', 'color' => $selectedColor]) }}"
+                    <a href="{{ route('products.booking', ['product' => $product->id, 'action' => 'with_driver']) }}"
                        class="cta-btn-driver mb-3 d-flex align-items-center">
                         <span class="cta-btn-icon"><i class="fa fa-user-circle"></i></span>
                         <div>
@@ -527,7 +474,7 @@
                 <div class="mt-3 p-3 rounded" style="background: #f8fafc; border: 1px dashed #cbd5e0;">
                     <div class="d-flex flex-column" style="gap: 8px;">
                         <div class="small text-muted"><i class="fa fa-shield text-success mr-1"></i> <strong>Bảo lãnh cọc 100%</strong> — Nền tảng giữ cọc escrow, hoàn tự động</div>
-                        <div class="small text-muted"><i class="fa fa-lock text-primary mr-1"></i> <strong>Thanh toán an toàn</strong> — SePay QR · MoMo · Tiền mặt</div>
+                        <div class="small text-muted"><i class="fa fa-lock text-primary mr-1"></i> <strong>Thanh toán an toàn</strong> — SePay VietQR tự động 24/7</div>
                         <div class="small text-muted"><i class="fa fa-headphones text-danger mr-1"></i> <strong>Hỗ trợ 24/7</strong> — Hotline & Livechat tức thì</div>
                     </div>
                 </div>
@@ -555,44 +502,6 @@
 </div>
 
 <script>
-    let currentDailyPrice = {{ $initialRentPrice }};
-    const driverDailyFee = {{ $driverDailyFee }};
-    let selectedColorName = '{{ $defaultColor->color_name }}';
-
-    function selectCarColor(colorName, rentPrice, extraPrice, element) {
-        currentDailyPrice = rentPrice;
-        selectedColorName = colorName;
-
-        // Cập nhật class active trên nút màu
-        document.querySelectorAll('.color-variant-card').forEach(el => el.classList.remove('active'));
-        if (element) element.classList.add('active');
-
-        // Cập nhật badge & text màu
-        document.getElementById('selected-color-badge').innerText = colorName;
-
-        // Cập nhật hiển thị giá niêm yết
-        document.getElementById('display-self-rent-price').innerText = new Intl.NumberFormat('vi-VN').format(currentDailyPrice);
-        document.getElementById('display-driver-rent-price').innerText = new Intl.NumberFormat('vi-VN').format(currentDailyPrice + driverDailyFee);
-
-        // Cập nhật giá hiển thị trên CTA buttons
-        if (document.getElementById('cta-self-price')) {
-            document.getElementById('cta-self-price').innerText = new Intl.NumberFormat('vi-VN').format(currentDailyPrice);
-        }
-        if (document.getElementById('cta-driver-price')) {
-            document.getElementById('cta-driver-price').innerText = new Intl.NumberFormat('vi-VN').format(currentDailyPrice + driverDailyFee);
-        }
-
-        // Cập nhật URL của các nút CTA để truyền màu đã chọn
-        const productId = {{ $product->id }};
-        const baseUrl = `/products/${productId}/booking`;
-        document.querySelectorAll('a[href*="/booking"]').forEach(link => {
-            const url = new URL(link.href);
-            url.searchParams.set('color', colorName);
-            link.href = url.toString();
-        });
-    }
-
-    // === GALLERY SLIDER CONTROLLER ===
     const galleryImages = @json($allImages);
     let currentGalleryIdx = 0;
 

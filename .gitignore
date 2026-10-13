@@ -26,4 +26,5 @@ Thumbs.db
 *.sql
 /scratch
 if0_*
+*.docx
 

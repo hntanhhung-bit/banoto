@@ -19,7 +19,7 @@
             <li class="nav-item ml-2">
                 <a class="nav-link font-weight-bold bg-white text-danger border shadow-sm"
                     href="{{ route('admin.rentals.index') }}">
-                    <i class="fa fa-key mr-1"></i> Đơn Thuê Xe & Đặt Cọc MoMo ({{ \App\Models\Rental::count() }})
+                    <i class="fa fa-key mr-1"></i> Đơn Thuê Xe & Đặt Cọc ({{ \App\Models\Rental::count() }})
                 </a>
             </li>
         </ul>
@@ -230,8 +230,8 @@
                                                     thanh toán</span>
                                             @endif
                                             <div class="mt-1" style="font-size: 11px;">
-                                                @if($order->payment_method === 'momo')
-                                                    <span class="badge" style="background-color: #a50064; color: #fff;">Ví MoMo</span>
+                                                @if($order->payment_method === 'sepay' || $order->payment_method === 'momo')
+                                                    <span class="badge" style="background-color: #005fb7; color: #fff;">SePay VietQR</span>
                                                 @elseif($order->payment_method === 'bank_transfer')
                                                     <span class="badge badge-info">VietQR / Chuyển khoản</span>
                                                 @elseif($order->payment_method === 'showroom')

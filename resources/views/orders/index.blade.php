@@ -88,10 +88,8 @@
                             </td>
                             <td class="text-center align-middle">
                                 <div class="mb-1">
-                                    @if($order->payment_method === 'momo')
-                                        <span class="badge" style="background-color: #a50064; color: #fff; font-weight: bold;">
-                                            <i class="fa fa-credit-card mr-1"></i> Ví MoMo
-                                        </span>
+                                    @if($order->payment_method === 'sepay' || $order->payment_method === 'momo')
+                                        <span class="badge badge-primary"><i class="fa fa-qrcode mr-1"></i> QR SePay</span>
                                     @elseif($order->payment_method === 'bank_transfer')
                                         <span class="badge badge-info">Chuyển khoản QR</span>
                                     @elseif($order->payment_method === 'showroom')
@@ -128,15 +126,9 @@
                                     <i class="fa fa-eye"></i> Xem
                                 </a>
                                 @if($order->payment_status !== 'paid' && $order->order_status !== 'cancelled')
-                                    @if($order->payment_method === 'sepay')
-                                        <a href="{{ route('orders.sepay.pay', $order->id) }}" class="btn btn-sm btn-primary font-weight-bold mb-1 shadow-sm" title="Quét mã QR SePay để thanh toán">
-                                            <i class="fa fa-qrcode mr-1"></i> Quét QR
-                                        </a>
-                                    @else
-                                        <a href="{{ route('orders.momo.pay', $order->id) }}" class="btn btn-sm btn-danger font-weight-bold mb-1 shadow-sm" style="background-color: #a50064; border-color: #a50064;" title="Thanh toán lại cho đơn hàng này qua MoMo">
-                                            <i class="fa fa-refresh mr-1"></i> Thanh toán lại
-                                        </a>
-                                    @endif
+                                    <a href="{{ route('orders.sepay.pay', $order->id) }}" class="btn btn-sm btn-primary font-weight-bold mb-1 shadow-sm" title="Quét mã QR SePay để thanh toán">
+                                        <i class="fa fa-qrcode mr-1"></i> Quét QR SePay
+                                    </a>
                                 @endif
                             </td>
                         </tr>

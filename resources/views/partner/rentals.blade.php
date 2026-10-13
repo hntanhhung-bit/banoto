@@ -166,7 +166,7 @@
                         @forelse($rentals as $rental)
                             <tr>
                                 <td class="text-center px-2">
-                                    <input type="checkbox" class="rental-checkbox" value="{{ $rental->id }}" style="cursor: pointer; width: 16px; height: 16px;">
+                                    <input type="checkbox" class="rental-checkbox" value="{{ $rental->id }}" {{ $rental->refund_status === 'refunded' ? 'disabled' : '' }} style="cursor: pointer; width: 16px; height: 16px;" title="{{ $rental->refund_status === 'refunded' ? 'Hợp đồng đã hoàn tất và khóa' : '' }}">
                                 </td>
                                 <!-- Cột 1: Hợp đồng & Khách -->
                                 <td style="min-width: 190px;">
@@ -240,12 +240,14 @@
                                                 <span class="badge badge-warning text-dark d-block mb-1" style="background-color: #ffeeba; border: 1px solid #f5c6cb;">
                                                     <i class="fa fa-clock-o text-danger"></i> Chưa nộp 10% hoa hồng
                                                 </span>
-                                                <a href="{{ route('partner.rentals.payCommissionMomo', ['rental' => $rental->id, 'type' => 'captureWallet']) }}" 
-                                                   class="btn btn-sm btn-danger btn-block font-weight-bold text-white mb-1 py-1" 
-                                                   style="font-size: 11px; background: #a50064; border-color: #a50064; border-radius: 4px;" 
-                                                   title="Nộp ngay 10% hoa hồng sàn qua Cổng MoMo Test">
-                                                    <i class="fa fa-bolt mr-1"></i> Nộp MoMo Test
-                                                </a>
+                                                <button type="button" 
+                                                   class="btn btn-sm btn-outline-primary btn-block font-weight-bold mb-1 py-1" 
+                                                   style="font-size: 11px; border-radius: 4px;" 
+                                                   data-toggle="modal" 
+                                                   data-target="#refundModal{{ $rental->id }}"
+                                                   title="Quét QR SePay nộp 10% hoa hồng sàn">
+                                                    <i class="fa fa-qrcode mr-1"></i> Quét SePay 10%
+                                                </button>
                                             @endif
 
                                             @if($rental->refund_status === 'refunded')
@@ -376,36 +378,52 @@
                                     @endif
 
                                     <!-- FORM CẬP NHẬT TRẠNG THÁI TIẾN ĐỘ -->
-                                    <form action="{{ route('partner.rentals.updateStatus', $rental->id) }}" method="POST">
-                                        @csrf
-                                        @method('PATCH')
-                                        <div class="form-group mb-1">
-                                            <label class="small font-weight-bold text-muted mb-0">Tiến độ hợp đồng:</label>
-                                            <select name="rental_status" class="form-control form-control-sm font-weight-bold">
-                                                <option value="pending" {{ $rental->rental_status === 'pending' ? 'selected' : '' }}>Chờ đối chiếu / duyệt</option>
-                                                <option value="confirmed" {{ $rental->rental_status === 'confirmed' ? 'selected' : '' }}>✓ Đã sẵn sàng xe</option>
-                                                <option value="in_progress" {{ $rental->rental_status === 'in_progress' ? 'selected' : '' }}>🚗 Đang phục vụ / Đang đi</option>
-                                                <option value="returned" {{ $rental->rental_status === 'returned' ? 'selected' : '' }}>🏆 Khách đã trả xe</option>
-                                                <option value="cancelled" {{ $rental->rental_status === 'cancelled' ? 'selected' : '' }}>✗ Hủy đơn</option>
-                                            </select>
+                                    @if($rental->refund_status === 'refunded')
+                                        <div class="p-2 rounded bg-light border border-success text-center">
+                                            <span class="badge badge-success px-2 py-1 font-weight-bold" style="font-size: 11px;">
+                                                <i class="fa fa-lock mr-1"></i> ĐÃ HOÀN TẤT & KHÓA
+                                            </span>
+                                            <div class="small text-success mt-1 font-weight-bold">
+                                                🏆 Khách đã trả xe
+                                            </div>
+                                            @if($rental->rental_type === 'with_driver' && $rental->driver_name)
+                                                <div class="small text-muted mt-1" style="font-size: 11px;">
+                                                    TX: {{ $rental->driver_name }} ({{ $rental->driver_phone }})
+                                                </div>
+                                            @endif
                                         </div>
-
-                                        @if($rental->rental_type === 'with_driver')
+                                    @else
+                                        <form action="{{ route('partner.rentals.updateStatus', $rental->id) }}" method="POST">
+                                            @csrf
+                                            @method('PATCH')
                                             <div class="form-group mb-1">
-                                                <input type="text" name="driver_name" value="{{ $rental->driver_name }}"
-                                                    class="form-control form-control-sm" placeholder="Tên tài xế...">
+                                                <label class="small font-weight-bold text-muted mb-0">Tiến độ hợp đồng:</label>
+                                                <select name="rental_status" class="form-control form-control-sm font-weight-bold">
+                                                    <option value="pending" {{ $rental->rental_status === 'pending' ? 'selected' : '' }}>Chờ đối chiếu / duyệt</option>
+                                                    <option value="confirmed" {{ $rental->rental_status === 'confirmed' ? 'selected' : '' }}>✓ Đã sẵn sàng xe</option>
+                                                    <option value="in_progress" {{ $rental->rental_status === 'in_progress' ? 'selected' : '' }}>🚗 Đang phục vụ / Đang đi</option>
+                                                    <option value="returned" {{ $rental->rental_status === 'returned' ? 'selected' : '' }}>🏆 Khách đã trả xe</option>
+                                                    <option value="cancelled" {{ $rental->rental_status === 'cancelled' ? 'selected' : '' }}>✗ Hủy đơn</option>
+                                                </select>
                                             </div>
-                                            <div class="form-group mb-1">
-                                                <input type="tel" name="driver_phone" value="{{ $rental->driver_phone }}"
-                                                    class="form-control form-control-sm" placeholder="SĐT tài xế...">
-                                            </div>
-                                        @endif
 
-                                        <button type="submit"
-                                            class="btn btn-sm btn-outline-primary btn-block font-weight-bold mb-1">
-                                            <i class="fa fa-refresh"></i> Lưu tiến độ
-                                        </button>
-                                    </form>
+                                            @if($rental->rental_type === 'with_driver')
+                                                <div class="form-group mb-1">
+                                                    <input type="text" name="driver_name" value="{{ $rental->driver_name }}"
+                                                        class="form-control form-control-sm" placeholder="Tên tài xế...">
+                                                </div>
+                                                <div class="form-group mb-1">
+                                                    <input type="tel" name="driver_phone" value="{{ $rental->driver_phone }}"
+                                                        class="form-control form-control-sm" placeholder="SĐT tài xế...">
+                                                </div>
+                                            @endif
+
+                                            <button type="submit"
+                                                class="btn btn-sm btn-outline-primary btn-block font-weight-bold mb-1">
+                                                <i class="fa fa-refresh"></i> Lưu tiến độ
+                                            </button>
+                                        </form>
+                                    @endif
                                 </td>
 
                                 <!-- Cột 5: Xử lý Hoàn cọc Ký quỹ cho khách -->
@@ -513,104 +531,57 @@
                                                                     </div>
                                                                 </div>
                                                             @else
-                                                                <!-- CHƯA NỘP: HIỂN THỊ 2 PHƯƠNG THỨC THANH TOÁN (MOMO TEST & NGÂN HÀNG ADMIN TPBANK) -->
-                                                                <div class="card border-warning mb-3 shadow-sm" style="border: 2px solid #ffc107 !important; background-color: #fffdf5;">
-                                                                    <div class="card-header bg-warning text-dark font-weight-bold py-2 d-flex justify-content-between align-items-center">
-                                                                        <span><i class="fa fa-university mr-1"></i> BẮT BUỘC: NỘP 10% HOA HỒNG SÀN</span>
-                                                                        <span class="badge badge-danger px-2 py-1 font-weight-bold" style="font-size: 13px;">{{ number_format($commission10) }} VNĐ</span>
+                                                                <!-- CHƯA NỘP: HIỂN THỊ PHƯƠNG THỨC THANH TOÁN SEPAY VIETQR ADMIN TPBANK -->
+                                                                <div class="card border-primary mb-3 shadow-sm" style="border: 2px solid #0d6efd !important; background-color: #f8faff;">
+                                                                    <div class="card-header bg-primary text-white font-weight-bold py-2 d-flex justify-content-between align-items-center">
+                                                                        <span><i class="fa fa-university mr-1"></i> BẮT BUỘC: NỘP 10% HOA HỒNG SÀN (SEPAY VIETQR)</span>
+                                                                        <span class="badge badge-light text-primary px-2 py-1 font-weight-bold" style="font-size: 13px;">{{ number_format($commission10) }} VNĐ</span>
                                                                     </div>
                                                                     <div class="card-body p-3">
-                                                                        <div class="alert alert-warning p-2 small mb-3 border-warning text-dark">
-                                                                            <i class="fa fa-info-circle text-danger mr-1"></i>
-                                                                            <strong>Quy chế vận hành:</strong> Đối tác phải chuyển đúng <strong>10% số tiền cho thuê xe ({{ number_format($commission10) }} đ)</strong> cho Ban Quản Trị (Admin) sàn AutoCar mới được phép hoàn tất nghiệm thu và gửi lệnh hoàn cọc cho khách.
+                                                                        <div class="alert alert-info p-2 small mb-3 border-info text-dark">
+                                                                            <i class="fa fa-info-circle text-primary mr-1"></i>
+                                                                            <strong>Quy chế vận hành:</strong> Đối tác chuyển <strong>10% số tiền cho thuê xe ({{ number_format($commission10) }} đ)</strong> cho Ban Quản Trị sàn qua <strong>Mã QR SePay (TPBank)</strong> bên dưới để hoàn tất nghiệm thu và gửi lệnh hoàn cọc cho khách.
                                                                         </div>
 
-                                                                        <!-- 2 LỰA CHỌN THANH TOÁN -->
-                                                                        <ul class="nav nav-pills nav-fill mb-3" id="commPayTab{{ $rental->id }}" role="tablist">
-                                                                            <li class="nav-item">
-                                                                                <a class="nav-link active font-weight-bold py-2 small" id="momo-tab{{ $rental->id }}" data-toggle="pill" href="#momoPay{{ $rental->id }}" role="tab">
-                                                                                    <i class="fa fa-bolt text-danger mr-1"></i> Cổng MoMo Test (Khuyên dùng)
-                                                                                </a>
-                                                                            </li>
-                                                                            <li class="nav-item">
-                                                                                <a class="nav-link font-weight-bold py-2 small" id="bank-tab{{ $rental->id }}" data-toggle="pill" href="#bankPay{{ $rental->id }}" role="tab">
-                                                                                    <i class="fa fa-university text-primary mr-1"></i> Chuyển khoản Ngân hàng Admin
-                                                                                </a>
-                                                                            </li>
-                                                                        </ul>
-
-                                                                        <div class="tab-content" id="commPayTabContent{{ $rental->id }}">
-                                                                            <!-- TAB 1: THANH TOÁN QUA CỔNG MOMO TEST -->
-                                                                            <div class="tab-pane fade show active" id="momoPay{{ $rental->id }}" role="tabpanel">
-                                                                                <div class="p-3 bg-white rounded border border-danger mb-2">
-                                                                                    <div class="d-flex align-items-center mb-2">
-                                                                                        <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="MoMo" style="height: 28px;" class="mr-2">
-                                                                                        <div>
-                                                                                            <strong class="text-dark">Thanh toán 10% hoa hồng qua Cổng MoMo Test</strong>
-                                                                                            <span class="badge badge-danger ml-2">Tự động 100%</span>
+                                                                        <div class="p-3 bg-white rounded border mb-2">
+                                                                            <div class="row align-items-center mb-3">
+                                                                                <div class="col-sm-5 text-center mb-2 mb-sm-0">
+                                                                                    <img src="{{ $sepayQrUrl }}" alt="SePay TPBank 10% hoa hồng" class="img-fluid rounded border shadow-sm" style="max-height: 180px;">
+                                                                                    <small class="text-muted d-block mt-1 font-weight-bold"><i class="fa fa-qrcode"></i> Quét mã QR SePay</small>
+                                                                                </div>
+                                                                                <div class="col-sm-7 small">
+                                                                                    <div class="p-2 bg-light rounded border">
+                                                                                        <div class="text-muted small mb-1"><i class="fa fa-university text-primary mr-1"></i> Tài khoản Admin nhận tiền của Sàn AutoCar:</div>
+                                                                                        <div>Ngân hàng: <strong class="text-dark">TPBank (Ngân hàng Tiên Phong)</strong></div>
+                                                                                        <div class="d-flex align-items-center my-1">
+                                                                                            <span>Số tài khoản: </span>
+                                                                                            <code class="text-primary font-weight-bold ml-1" style="font-size: 15px;">{{ $adminBankAcc }}</code>
                                                                                         </div>
+                                                                                        <div>Chủ tài khoản: <strong class="text-dark font-weight-bold">{{ $adminAccName }}</strong></div>
+                                                                                        <div>Số tiền (10%): <strong class="text-danger font-weight-bold" style="font-size: 14px;">{{ number_format($commission10) }} VNĐ</strong></div>
+                                                                                        <div class="mt-1">Cú pháp CK: <code class="text-dark bg-white px-1 border rounded font-weight-bold">{{ $qrInfo }}</code></div>
                                                                                     </div>
-                                                                                    <p class="text-muted small mb-3">
-                                                                                        Bấm nút thanh toán bên dưới để chuyển sang Cổng MoMo Sandbox (Quét mã Ví MoMo Test hoặc nhập Thẻ ATM nội địa Napas Test). Sau khi hoàn tất, hệ thống tự động ghi nhận hoa hồng sàn ngay lập tức.
-                                                                                    </p>
-                                                                                    <div class="d-flex flex-wrap">
-                                                                                        <a href="{{ route('partner.rentals.payCommissionMomo', ['rental' => $rental->id, 'type' => 'captureWallet']) }}" 
-                                                                                           class="btn btn-sm font-weight-bold text-white shadow-sm mr-2 mb-1" 
-                                                                                           style="background: #a50064; border-color: #a50064; border-radius: 6px; padding: 8px 14px;">
-                                                                                            <i class="fa fa-qrcode mr-1"></i> Quét mã Ví MoMo Test ({{ number_format($commission10) }}đ)
-                                                                                        </a>
-                                                                                        <a href="{{ route('partner.rentals.payCommissionMomo', ['rental' => $rental->id, 'type' => 'payWithATM']) }}" 
-                                                                                           class="btn btn-sm btn-outline-danger font-weight-bold shadow-sm mb-1" 
-                                                                                           style="border-radius: 6px; padding: 8px 14px;">
-                                                                                            <i class="fa fa-credit-card mr-1"></i> Thẻ ATM Nội Địa Test (MoMo)
-                                                                                        </a>
+                                                                                    <div class="mt-2 text-muted" style="font-size: 11px;">
+                                                                                        (Tổng tiền thuê xe: {{ number_format($totalRentalFee) }}đ &bull; Showroom giữ 90%: {{ number_format($partnerNet90) }}đ)
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
 
-                                                                            <!-- TAB 2: CHUYỂN KHOẢN NGÂN HÀNG ADMIN (TPBANK) -->
-                                                                            <div class="tab-pane fade" id="bankPay{{ $rental->id }}" role="tabpanel">
-                                                                                <div class="p-3 bg-white rounded border mb-2">
-                                                                                    <div class="row align-items-center mb-3">
-                                                                                        <div class="col-sm-5 text-center mb-2 mb-sm-0">
-                                                                                            <img src="{{ $sepayQrUrl }}" alt="SePay TPBank 10% hoa hồng" class="img-fluid rounded border shadow-sm" style="max-height: 180px;">
-                                                                                            <small class="text-muted d-block mt-1 font-weight-bold"><i class="fa fa-qrcode"></i> Quét mã QR chuyển nhanh</small>
-                                                                                        </div>
-                                                                                        <div class="col-sm-7 small">
-                                                                                            <div class="p-2 bg-light rounded border">
-                                                                                                <div class="text-muted small mb-1"><i class="fa fa-university text-primary mr-1"></i> Tài khoản Admin nhận tiền của Sàn AutoCar:</div>
-                                                                                                <div>Ngân hàng: <strong class="text-dark">TPBank (Ngân hàng Tiên Phong)</strong></div>
-                                                                                                <div class="d-flex align-items-center my-1">
-                                                                                                    <span>Số tài khoản: </span>
-                                                                                                    <code class="text-primary font-weight-bold ml-1" style="font-size: 15px;">{{ $adminBankAcc }}</code>
-                                                                                                </div>
-                                                                                                <div>Chủ tài khoản: <strong class="text-dark font-weight-bold">{{ $adminAccName }}</strong></div>
-                                                                                                <div>Số tiền (10%): <strong class="text-danger font-weight-bold" style="font-size: 14px;">{{ number_format($commission10) }} VNĐ</strong></div>
-                                                                                                <div class="mt-1">Cú pháp CK: <code class="text-dark bg-white px-1 border rounded font-weight-bold">{{ $qrInfo }}</code></div>
-                                                                                            </div>
-                                                                                            <div class="mt-2 text-muted" style="font-size: 11px;">
-                                                                                                (Tổng tiền thuê xe: {{ number_format($totalRentalFee) }}đ &bull; Showroom giữ 90%: {{ number_format($partnerNet90) }}đ)
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
+                                                                            <div class="form-group mb-2">
+                                                                                <label class="font-weight-bold small text-danger text-uppercase">
+                                                                                    <i class="fa fa-barcode mr-1"></i> Mã giao dịch SePay / Ngân hàng đã chuyển 10% hoa hồng:
+                                                                                </label>
+                                                                                <input type="text" name="commission_payment_proof" class="form-control form-control-sm font-weight-bold text-primary" 
+                                                                                       placeholder="VD: FT2609218849 hoặc mã giao dịch ngân hàng TPBank" 
+                                                                                       value="{{ old('commission_payment_proof', $rental->partner_commission_proof) }}">
+                                                                                <small class="text-muted">Nhập mã giao dịch để Ban Quản Trị đối soát và giải ngân hoàn cọc cho khách.</small>
+                                                                            </div>
 
-                                                                                    <div class="form-group mb-2">
-                                                                                        <label class="font-weight-bold small text-danger text-uppercase">
-                                                                                            <i class="fa fa-barcode mr-1"></i> Mã giao dịch ngân hàng đã chuyển 10% hoa hồng:
-                                                                                        </label>
-                                                                                        <input type="text" name="commission_payment_proof" class="form-control form-control-sm font-weight-bold text-primary" 
-                                                                                               placeholder="VD: FT2609218849 hoặc mã giao dịch ngân hàng TPBank" 
-                                                                                               value="{{ old('commission_payment_proof', $rental->partner_commission_proof) }}">
-                                                                                        <small class="text-muted">Nhập mã giao dịch để Ban Quản Trị đối soát và giải ngân hoàn cọc cho khách.</small>
-                                                                                    </div>
-
-                                                                                    <div class="custom-control custom-checkbox mt-2">
-                                                                                        <input type="checkbox" class="custom-control-input" id="confirmComm{{ $rental->id }}" name="confirm_commission_paid" value="1">
-                                                                                        <label class="custom-control-label small font-weight-bold text-dark" for="confirmComm{{ $rental->id }}">
-                                                                                            Tôi xác nhận đã chuyển đủ {{ number_format($commission10) }}đ (10% hoa hồng) vào tài khoản Admin TPBank.
-                                                                                        </label>
-                                                                                    </div>
-                                                                                </div>
+                                                                            <div class="custom-control custom-checkbox mt-2">
+                                                                                <input type="checkbox" class="custom-control-input" id="confirmComm{{ $rental->id }}" name="confirm_commission_paid" value="1">
+                                                                                <label class="custom-control-label small font-weight-bold text-dark" for="confirmComm{{ $rental->id }}">
+                                                                                    Tôi xác nhận đã chuyển đủ {{ number_format($commission10) }}đ (10% hoa hồng) vào tài khoản SePay Admin TPBank.
+                                                                                </label>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -753,8 +724,9 @@
                 btnBulkApply.disabled = !isEnabled;
             }
 
-            if (selectAll && checkboxes.length > 0) {
-                selectAll.checked = (checkedBoxes.length === checkboxes.length);
+            var enabledBoxes = document.querySelectorAll('.rental-checkbox:not(:disabled)');
+            if (selectAll && enabledBoxes.length > 0) {
+                selectAll.checked = (checkedBoxes.length === enabledBoxes.length);
             }
         }
 
@@ -762,7 +734,9 @@
             selectAll.addEventListener('change', function() {
                 var isChecked = this.checked;
                 checkboxes.forEach(function(cb) {
-                    cb.checked = isChecked;
+                    if (!cb.disabled) {
+                        cb.checked = isChecked;
+                    }
                 });
                 updateBulkUI();
             });

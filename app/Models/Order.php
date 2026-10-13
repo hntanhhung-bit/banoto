@@ -88,7 +88,7 @@ class Order extends Model
             }
         }
 
-        // Phương thức thanh toán (VietQR, MoMo, Showroom / Chuyển khoản)
+        // Phương thức thanh toán (VietQR SePay, Showroom / Chuyển khoản)
         $method = $paymentMethod ?: ($order?->payment_method ?: 'bank_transfer');
 
         // Trạng thái thanh toán (Mặc định khi chốt xe là đã thanh toán hoặc theo tiến độ)

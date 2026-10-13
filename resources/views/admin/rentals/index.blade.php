@@ -24,7 +24,7 @@
             </li>
             <li class="nav-item ml-2">
                 <a class="nav-link active font-weight-bold bg-danger" href="{{ route('admin.rentals.index') }}">
-                    <i class="fa fa-key mr-1"></i> Đơn Thuê Xe & Đặt Cọc MoMo ({{ \App\Models\Rental::count() }})
+                    <i class="fa fa-key mr-1"></i> Đơn Thuê Xe & Đặt Cọc ({{ \App\Models\Rental::count() }})
                 </a>
             </li>
         </ul>
@@ -154,7 +154,7 @@
                                 <tr class="{{ $isWaitingRefund ? 'table-warning' : '' }}">
                                     <!-- Cột Checkbox -->
                                     <td class="text-center align-middle">
-                                        <input type="checkbox" name="rental_ids[]" value="{{ $rental->id }}" class="rental-checkbox" style="transform: scale(1.2); cursor: pointer;">
+                                        <input type="checkbox" name="rental_ids[]" value="{{ $rental->id }}" class="rental-checkbox" {{ $rental->refund_status === 'refunded' ? 'disabled' : '' }} title="{{ $rental->refund_status === 'refunded' ? 'Hợp đồng đã hoàn tất và khóa trạng thái' : '' }}" style="transform: scale(1.2); cursor: pointer;">
                                     </td>
                                     <!-- Cột 1: Hợp đồng & Khách -->
                                     <td class="px-3">
@@ -594,14 +594,19 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btnSubmit) {
             btnSubmit.disabled = !(hasSelection && hasAction);
         }
-        if (checkAll && checkboxes.length > 0) {
-            checkAll.checked = (count === checkboxes.length);
+        const enabledBoxes = document.querySelectorAll('.rental-checkbox:not(:disabled)');
+        if (checkAll && enabledBoxes.length > 0) {
+            checkAll.checked = (count === enabledBoxes.length);
         }
     }
 
     if (checkAll) {
         checkAll.addEventListener('change', function () {
-            checkboxes.forEach(cb => cb.checked = checkAll.checked);
+            checkboxes.forEach(cb => {
+                if (!cb.disabled) {
+                    cb.checked = checkAll.checked;
+                }
+            });
             updateState();
         });
     }

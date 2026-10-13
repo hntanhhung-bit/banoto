@@ -50,7 +50,7 @@ class CheckoutController extends Controller
             'to_district_id' => $deliveryType === 'garage_delivery' ? 'nullable|integer' : 'nullable',
             'to_ward_code' => $deliveryType === 'garage_delivery' ? 'nullable|string' : 'nullable',
             'shipping_fee' => 'nullable|numeric|min:0',
-            'payment_method' => 'required|in:cod,bank_transfer,momo,sepay',
+            'payment_method' => 'required|in:cod,bank_transfer,sepay',
             'note' => 'nullable|string|max:1000',
         ], [
             'customer_name.required' => 'Vui lòng nhập họ và tên người nhận xe.',
@@ -134,19 +134,7 @@ class CheckoutController extends Controller
             }
         }
 
-        // 3. Phân luồng Thanh toán theo kiến trúc tài liệu
-        if ($request->payment_method === 'momo') {
-            PaymentTransaction::create([
-                'order_id' => $order->id,
-                'gateway' => 'momo',
-                'amount' => $order->total_amount,
-                'status' => 'pending',
-            ]);
-
-            session()->forget('cart');
-            return redirect()->route('orders.momo.start', $order);
-        }
-
+        // 3. Phân luồng Thanh toán: Sử dụng SePay VietQR làm cổng thanh toán trực tuyến tự động duy nhất
         if ($request->payment_method === 'sepay') {
             PaymentTransaction::create([
                 'order_id' => $order->id,

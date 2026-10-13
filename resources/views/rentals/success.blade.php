@@ -108,13 +108,9 @@
                                 <tr>
                                     <td class="text-muted">Phương thức thanh toán:</td>
                                     <td>
-                                        @if($rental->payment_method === 'momo')
-                                            <span class="badge px-2 py-1 text-white" style="background-color: #a50064;">
-                                                <i class="fa fa-credit-card mr-1"></i> Thẻ ATM nội địa (MoMo)
-                                            </span>
-                                        @elseif($rental->payment_method === 'sepay')
-                                            <span class="badge badge-primary px-2 py-1 text-white">
-                                                <i class="fa fa-qrcode mr-1"></i> QR SePay (TPBank)
+                                        @if($rental->payment_method === 'sepay' || $rental->payment_method === 'momo')
+                                            <span class="badge badge-primary px-2 py-1 text-white" style="background-color: #0d6efd;">
+                                                <i class="fa fa-qrcode mr-1"></i> Quét mã QR SePay (TPBank)
                                             </span>
                                         @else
                                             <span class="badge badge-secondary px-2 py-1">
@@ -144,107 +140,36 @@
                             </table>
                         </div>
 
-                        <!-- Cột Thanh toán cọc qua SePay QR hoặc MoMo ATM -->
+                        <!-- Cột Thanh toán cọc qua SePay VietQR -->
                         <div class="col-md-5 text-center border-left pl-md-4">
-                            @if($rental->payment_method === 'sepay')
-                                <h6 class="font-weight-bold mb-3 text-primary">
-                                    <i class="fa fa-qrcode mr-1"></i> Đặt Cọc Quét Mã QR SePay
-                                </h6>
+                            <h6 class="font-weight-bold mb-3 text-primary">
+                                <i class="fa fa-qrcode mr-1"></i> Đặt Cọc Quét Mã QR SePay
+                            </h6>
 
-                                @if($rental->payment_status === 'deposit_paid' || $rental->payment_status === 'fully_paid')
-                                    <div class="p-4 bg-light rounded text-center border border-success mb-3 shadow-sm">
-                                        <i class="fa fa-check-circle fa-3x text-success mb-2"></i>
-                                        <h5 class="font-weight-bold text-success">Đã Đặt Cọc Thành Công!</h5>
-                                        <p class="text-muted small mb-0">Hệ thống đã ghi nhận tiền cọc <strong>{{ number_format($rental->deposit_amount) }} đ</strong> qua QR SePay (TPBank).</p>
-                                    </div>
-                                @else
-                                    <div class="alert alert-warning py-2 px-3 mb-3 small text-left border">
-                                        <i class="fa fa-clock-o mr-1"></i> Trạng thái cọc: <strong class="text-danger">Chưa nhận được tiền cọc</strong>
-                                    </div>
-
-                                    <a href="{{ route('rentals.sepay.pay', $rental->id) }}" class="btn btn-primary font-weight-bold shadow-sm w-100 py-3 mb-3 text-center text-white" style="border-radius: 8px; font-size: 15px; white-space: normal; line-height: 1.4; display: block;">
-                                        <i class="fa fa-qrcode mr-1"></i> Mở trang quét mã QR SePay &rarr;
-                                    </a>
-
-                                    <div class="p-3 bg-light rounded border small text-muted text-left">
-                                        <i class="fa fa-info-circle text-primary mr-1"></i> Quét mã VietQR bằng App ngân hàng bất kỳ. Hệ thống sẽ tự động xác nhận tiền cọc sau 3 giây.
-                                    </div>
-                                @endif
-                            @elseif($rental->payment_method === 'momo')
-                                <h6 class="font-weight-bold mb-3" style="color: #a50064;">
-                                    <i class="fa fa-credit-card mr-1"></i> Thanh toán Cọc MoMo Sandbox
-                                </h6>
-
-                                @if($rental->payment_status === 'deposit_paid' || $rental->payment_status === 'fully_paid')
-                                    <div class="p-4 bg-light rounded text-center border border-success mb-3 shadow-sm">
-                                        <i class="fa fa-check-circle fa-3x text-success mb-2"></i>
-                                        <h5 class="font-weight-bold text-success">Đã Đặt Cọc Thành Công!</h5>
-                                        <p class="text-muted small mb-0">Hệ thống đã ghi nhận tiền cọc <strong>{{ number_format($rental->deposit_amount) }} đ</strong> qua Cổng MoMo.</p>
-                                        <div class="mt-2 text-success font-weight-bold small">
-                                            <i class="fa fa-key mr-1"></i> Mã đối chiếu nhận xe đã được cấp thành công ở trên!
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="alert alert-warning py-2 px-3 mb-3 small text-left border">
-                                        <i class="fa fa-clock-o mr-1"></i> Trạng thái cọc: <strong class="text-danger">Chưa nhận được tiền cọc</strong>
-                                    </div>
-
-                                    <!-- Nút 1: Test thẻ ATM nội địa Napas -->
-                                    <a href="{{ route('rentals.momo.pay', ['rental' => $rental->id, 'type' => 'payWithATM']) }}" class="btn font-weight-bold shadow-sm w-100 py-3 mb-2 text-center text-white" style="background-color: #a50064; border-color: #a50064; border-radius: 8px; font-size: 15px; white-space: normal; line-height: 1.4; display: block;">
-                                        <i class="fa fa-credit-card mr-1"></i> Thanh toán cọc qua Thẻ ATM nội địa (Napas) &rarr;
-                                    </a>
-
-                                    <!-- Nút 2: Test Ví MoMo quét mã QR -->
-                                    <a href="{{ route('rentals.momo.pay', ['rental' => $rental->id, 'type' => 'captureWallet']) }}" class="btn btn-outline-dark font-weight-bold w-100 py-2 mb-3 text-center" style="border-radius: 8px; font-size: 13px;">
-                                        <i class="fa fa-qrcode mr-1"></i> Hoặc mở trang quét mã QR Ví MoMo &rarr;
-                                    </a>
-                                @endif
-
-                                <!-- Bảng tài khoản thẻ ATM Test MoMo -->
-                                <div class="p-2 rounded border bg-white small text-muted shadow-sm text-left">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <strong class="text-dark"><i class="fa fa-credit-card text-primary mr-1"></i> Thẻ ATM Test (MoMo Napas):</strong>
-                                        <span class="badge badge-warning text-dark font-weight-bold">OTP: 000000</span>
-                                    </div>
-                                    <table class="table table-sm table-bordered m-0 text-center" style="font-size: 11px;">
-                                        <thead class="bg-light text-dark font-weight-bold">
-                                            <tr>
-                                                <th style="width: 25px;">No</th>
-                                                <th>Số thẻ</th>
-                                                <th>Hạn thẻ</th>
-                                                <th>Kết quả</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr class="table-success">
-                                                <td class="font-weight-bold">1</td>
-                                                <td><code class="font-weight-bold text-dark">9704 0000 0000 0018</code></td>
-                                                <td>12/30</td>
-                                                <td><strong class="text-success"><i class="fa fa-check"></i> Cấp mã OTP</strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td class="font-weight-bold">2</td>
-                                                <td><code class="text-muted">9704 0000 0000 0026</code></td>
-                                                <td>12/30</td>
-                                                <td><span class="badge badge-danger">Thẻ khóa (Không cấp mã)</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td class="font-weight-bold">3</td>
-                                                <td><code class="text-muted">9704 0000 0000 0034</code></td>
-                                                <td>12/30</td>
-                                                <td><span class="badge badge-warning text-dark">Hết tiền (Không cấp mã)</span></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                    <div class="mt-2 text-info" style="font-size: 11px;">
-                                        <i class="fa fa-shield mr-1"></i> <strong>Bảo vệ quyền lợi:</strong> Khi thanh toán thất bại sẽ <em>không tạo mã</em>. Nếu thanh toán/chuyển khoản trễ, Quản trị viên (Admin) có quyền kiểm tra và bấm <strong>"Xác nhận đã nhận cọc"</strong> để kích hoạt mã ngay cho bạn tránh mất tiền.
+                            @if($rental->payment_status === 'deposit_paid' || $rental->payment_status === 'fully_paid')
+                                <div class="p-4 bg-light rounded text-center border border-success mb-3 shadow-sm">
+                                    <i class="fa fa-check-circle fa-3x text-success mb-2"></i>
+                                    <h5 class="font-weight-bold text-success">Đã Đặt Cọc Thành Công!</h5>
+                                    <p class="text-muted small mb-0">Hệ thống đã ghi nhận tiền cọc <strong>{{ number_format($rental->deposit_amount) }} đ</strong> qua QR SePay (TPBank).</p>
+                                    <div class="mt-2 text-success font-weight-bold small">
+                                        <i class="fa fa-key mr-1"></i> Mã đối chiếu nhận xe đã được cấp thành công ở trên!
                                     </div>
                                 </div>
                             @else
-                                <div class="p-4 bg-light rounded text-muted small">
-                                    <i class="fa fa-money fa-3x text-warning mb-2"></i>
-                                    <h6 class="font-weight-bold text-dark">Thanh toán cọc trực tiếp</h6>
-                                    <p class="mb-0">Bạn đã chọn thanh toán trực tiếp khi nhận bàn giao xe và ký hợp đồng.</p>
+                                <div class="alert alert-warning py-2 px-3 mb-3 small text-left border">
+                                    <i class="fa fa-clock-o mr-1"></i> Trạng thái cọc: <strong class="text-danger">Chưa nhận được tiền cọc</strong>
+                                </div>
+
+                                <a href="{{ route('rentals.sepay.pay', $rental->id) }}" class="btn btn-primary font-weight-bold shadow-sm w-100 py-3 mb-3 text-center text-white" style="border-radius: 8px; font-size: 15px; white-space: normal; line-height: 1.4; display: block;">
+                                    <i class="fa fa-qrcode mr-1"></i> Mở trang quét mã QR SePay &rarr;
+                                </a>
+
+                                <div class="p-3 bg-light rounded border small text-muted text-left mb-2">
+                                    <i class="fa fa-info-circle text-primary mr-1"></i> Quét mã VietQR bằng App ngân hàng bất kỳ (TPBank, Vietcombank, MB, Techcombank...). Hệ thống sẽ tự động xác nhận tiền cọc sau 3 giây.
+                                </div>
+
+                                <div class="p-2 bg-light rounded border text-muted small text-left" style="font-size: 11px;">
+                                    <i class="fa fa-shield text-success mr-1"></i> <strong>Bảo vệ quyền lợi:</strong> Khi cọc thành công, hệ thống tự động sinh Mã nhận xe 6 số. Nếu chuyển khoản ngoài giờ hoặc mạng chậm, Admin sàn có quyền bấm <strong>"Xác nhận nhận cọc"</strong> để kích hoạt mã ngay cho bạn.
                                 </div>
                             @endif
                         </div>

@@ -56,31 +56,31 @@ class PaymentController extends Controller
         // Phân trang
         $transactions = $query->orderBy('id', 'desc')->paginate(15)->withQueryString();
 
-        // 5. Thống kê báo cáo KPI tổng thể MoMo và các cổng thanh toán
-        $totalMomoRevenue = PaymentTransaction::where('gateway', 'momo')->where('status', 'paid')->sum('amount');
-        $totalMomoCount = PaymentTransaction::where('gateway', 'momo')->count();
-        $totalMomoSuccess = PaymentTransaction::where('gateway', 'momo')->where('status', 'paid')->count();
-        $totalMomoFailed = PaymentTransaction::where('gateway', 'momo')->where('status', 'failed')->count();
-        $totalMomoPending = PaymentTransaction::where('gateway', 'momo')->where('status', 'pending')->count();
+        // 5. Thống kê báo cáo KPI tổng thể SePay VietQR và các cổng thanh toán
+        $totalSepayRevenue = PaymentTransaction::whereIn('gateway', ['sepay', 'momo'])->where('status', 'paid')->sum('amount');
+        $totalSepayCount = PaymentTransaction::whereIn('gateway', ['sepay', 'momo'])->count();
+        $totalSepaySuccess = PaymentTransaction::whereIn('gateway', ['sepay', 'momo'])->where('status', 'paid')->count();
+        $totalSepayFailed = PaymentTransaction::whereIn('gateway', ['sepay', 'momo'])->where('status', 'failed')->count();
+        $totalSepayPending = PaymentTransaction::whereIn('gateway', ['sepay', 'momo'])->where('status', 'pending')->count();
 
         // Doanh thu các cổng khác
         $totalBankRevenue = PaymentTransaction::where('gateway', 'bank_transfer')->where('status', 'paid')->sum('amount');
         $totalCodRevenue = PaymentTransaction::where('gateway', 'cod')->where('status', 'paid')->sum('amount');
         $grandTotalRevenue = PaymentTransaction::where('status', 'paid')->sum('amount');
 
-        $momoSuccessRate = $totalMomoCount > 0 ? round(($totalMomoSuccess / $totalMomoCount) * 100, 1) : 0;
+        $sepaySuccessRate = $totalSepayCount > 0 ? round(($totalSepaySuccess / $totalSepayCount) * 100, 1) : 0;
 
         return view('admin.payments.index', compact(
             'transactions',
-            'totalMomoRevenue',
-            'totalMomoCount',
-            'totalMomoSuccess',
-            'totalMomoFailed',
-            'totalMomoPending',
+            'totalSepayRevenue',
+            'totalSepayCount',
+            'totalSepaySuccess',
+            'totalSepayFailed',
+            'totalSepayPending',
             'totalBankRevenue',
             'totalCodRevenue',
             'grandTotalRevenue',
-            'momoSuccessRate'
+            'sepaySuccessRate'
         ));
     }
 }
